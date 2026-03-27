@@ -6,7 +6,14 @@ const authMiddleware = async (req, res, next) => {
 
     if (!authHeader) {
       return res.status(401).json({
-        message: "No token provided",
+        message: "Authorization token is required",
+        error: true
+      });
+    }
+
+    if (!authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        message: "Invalid authorization format",
         error: true
       });
     }
@@ -17,19 +24,18 @@ const authMiddleware = async (req, res, next) => {
 
     if (error || !data.user) {
       return res.status(401).json({
-        message: "Invalid token",
+        message: "Invalid or expired token",
         error: true
       });
     }
 
-    // inject user ke request
     req.user = data.user;
 
     next();
 
   } catch (err) {
     return res.status(500).json({
-      message: err.message,
+      message: "Authentication failed",
       error: true
     });
   }
