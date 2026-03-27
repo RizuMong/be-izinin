@@ -4,8 +4,9 @@ const db = require("../db/index");
 const router = express.Router();
 
 const { getAfdeling, createAfdelingService, deleteAfdelingService, updateAfdelingService } = require("../afdeling/afdeling.service");
+const authMiddleware = require("../middleware/auth");
 
-router.get("/", async (req, res) => {
+router.get("/", authMiddleware, async (req, res) => {
     try {
         const result = await getAfdeling(req.query);
 
@@ -25,7 +26,7 @@ router.get("/", async (req, res) => {
     }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", authMiddleware, async (req, res) => {
     try {
         const data = await createAfdelingService(req.body);
 
@@ -44,7 +45,7 @@ router.post("/", async (req, res) => {
     }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
 
@@ -65,7 +66,7 @@ router.delete("/:id", async (req, res) => {
     }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", authMiddleware, async (req, res) => {
     try {
         const data = await updateAfdelingService(req.params.id, req.body);
 
