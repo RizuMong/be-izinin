@@ -51,7 +51,7 @@ const getAfdeling = async (params) => {
 const createAfdelingService = async (body) => {
     const { name } = body;
 
-    // 🔒 Validation
+    // Validation
     if (!name) {
         throw new Error("Name is required");
     }

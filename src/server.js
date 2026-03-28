@@ -18,8 +18,8 @@ app.use("/afdeling", afdelingController);
 const holidayController = require("./master-holiday/holiday.controller");
 app.use("/holiday", holidayController);
 
-// const employeeController = require("./master-holiday/holiday.controller");
-// app.use("/employee", employeeController);
+const employeeController = require("./master-employee/employee.controller");
+app.use("/employee", employeeController);
 
 const jobPositionController = require("./master-job-position/job-position.controller");
 app.use("/job-position", jobPositionController);
