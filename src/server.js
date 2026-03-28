@@ -24,8 +24,8 @@ app.use("/holiday", holidayController);
 // const jobPositionController = require("./master-holiday/holiday.controller");
 // app.use("/job-position", jobPositionController);
 
-// const siteController = require("./master-holiday/holiday.controller");
-// app.use("/site", siteController);
+const siteController = require("./master-site/site.controller");
+app.use("/site", siteController);
 
 // const timeOffController = require("./master-holiday/holiday.controller");
 // app.use("/time-off", timeOffController);
