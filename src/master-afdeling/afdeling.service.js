@@ -1,5 +1,3 @@
-const db = require("../db");
-
 const { findAll, createAfdeling, deleteAfdeling, updateAfdeling } = require("./afdeling.repository");
 
 const getAfdeling = async (params) => {

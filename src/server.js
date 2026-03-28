@@ -12,8 +12,23 @@ const authController = require("./auth/auth.controller");
 app.use("/auth", authController);
 
 // master data
-const afdelingController = require("./afdeling/afdeling.controller");
+const afdelingController = require("./master-afdeling/afdeling.controller");
 app.use("/afdeling", afdelingController);
+
+const holidayController = require("./master-holiday/holiday.controller");
+app.use("/holiday", holidayController);
+
+// const employeeController = require("./master-holiday/holiday.controller");
+// app.use("/employee", employeeController);
+
+// const jobPositionController = require("./master-holiday/holiday.controller");
+// app.use("/job-position", jobPositionController);
+
+// const siteController = require("./master-holiday/holiday.controller");
+// app.use("/site", siteController);
+
+// const timeOffController = require("./master-holiday/holiday.controller");
+// app.use("/time-off", timeOffController);
 
 // time off
 

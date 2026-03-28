@@ -2,7 +2,7 @@ const express = require("express");
 
 const router = express.Router();
 
-const { getAfdeling, createAfdelingService, deleteAfdelingService, updateAfdelingService } = require("../afdeling/afdeling.service");
+const { getAfdeling, createAfdelingService, deleteAfdelingService, updateAfdelingService } = require("./afdeling.service");
 const authMiddleware = require("../middleware/auth");
 
 router.get("/", authMiddleware, async (req, res) => {

@@ -1,5 +1,3 @@
-// repositories/afdeling.repository.js
-
 const db = require("../db");
 
 const findAll = async ({ from, to, sortBy, order, search }) => {
