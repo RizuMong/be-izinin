@@ -70,6 +70,11 @@ const createHolidayService = async (body) => {
         throw new Error("Name is required");
     }
 
+    const nameRegex = /^[A-Za-z\s]+$/;
+    if (!nameRegex.test(name)) {
+        throw new Error("Name cannot contain special characters");
+    }
+
     if (typeof is_national_holiday !== "boolean") {
         throw new Error("National holiday must be a boolean");
     }
@@ -130,6 +135,11 @@ const updateHolidayService = async (id, body) => {
     if (name !== undefined) {
         if (!name) {
             throw new Error("Name cannot be empty");
+        }
+
+        const nameRegex = /^[A-Za-z\s]+$/;
+        if (!nameRegex.test(name)) {
+            throw new Error("Name cannot contain special characters");
         }
         payload.name = name;
     }

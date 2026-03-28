@@ -121,8 +121,18 @@ const createEmployeeService = async (body) => {
         throw new Error("NPK is required");
     }
 
+    const npkRegex = /^[A-Za-z0-9]+$/;
+    if (!npkRegex.test(npk)) {
+        throw new Error("NPK cannot contain special characters");
+    }
+
     if (!full_name) {
         throw new Error("Full Name is required");
+    }
+
+    const nameRegex = /^[A-Za-z\s]+$/;
+    if (!nameRegex.test(full_name)) {
+        throw new Error("Full Name cannot contain special characters");
     }
 
     if (!tmk) {
@@ -236,12 +246,22 @@ const updateEmployeeService = async (id, body) => {
             throw new Error("NPK is required");
         }
 
+        const npkRegex = /^[A-Za-z0-9]+$/;
+        if (!npkRegex.test(npk)) {
+            throw new Error("NPK cannot contain special characters");
+        }
+
         payload.npk = npk;
     }
 
     if (full_name !== undefined) {
         if (!full_name) {
             throw new Error("Full Name is required");
+        }
+
+        const nameRegex = /^[A-Za-z\s]+$/;
+        if (!nameRegex.test(full_name)) {
+            throw new Error("Full Name cannot contain special characters");
         }
 
         payload.full_name = full_name;
@@ -263,6 +283,7 @@ const updateEmployeeService = async (id, body) => {
     if (Object.keys(payload).length === 0) {
         throw new Error("No data provided for update");
     }
+
 
     const { data, error } = await updateEmployee(parsedId, payload);
 

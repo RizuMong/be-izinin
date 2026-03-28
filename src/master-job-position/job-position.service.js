@@ -51,9 +51,14 @@ const getJobPosition = async (params) => {
 const createJobPositionService = async (body) => {
     const { name } = body;
 
-    // 🔒 Validation
+    // Validation
     if (!name) {
         throw new Error("Name is required");
+    }
+
+    const nameRegex = /^[A-Za-z\s]+$/;
+    if (!nameRegex.test(name)) {
+        throw new Error("Name cannot contain special characters");
     }
 
     const { data, error } = await createJobPosition({ name });

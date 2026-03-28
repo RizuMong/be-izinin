@@ -56,6 +56,11 @@ const createAfdelingService = async (body) => {
         throw new Error("Name is required");
     }
 
+    const nameRegex = /^[A-Za-z\s]+$/;
+    if (!nameRegex.test(name)) {
+        throw new Error("Name cannot contain special characters");
+    }
+
     const { data, error } = await createAfdeling({ name });
 
     if (error) {
@@ -101,6 +106,11 @@ const updateAfdelingService = async (id, body) => {
         const err = new Error("Name is required");
         err.status = 400;
         throw err;
+    }
+
+    const nameRegex = /^[A-Za-z\s]+$/;
+    if (!nameRegex.test(name)) {
+        throw new Error("Name cannot contain special characters");
     }
 
     const { data, error } = await updateAfdeling(parsedId, { name });
