@@ -89,7 +89,7 @@ const deleteAfdelingService = async (id) => {
 
 const updateAfdelingService = async (id, body) => {
     const parsedId = parseInt(id);
-    const name = body.name?.trim();
+    const name = body.name;
 
     // Validasi ID
     if (!parsedId || isNaN(parsedId)) {

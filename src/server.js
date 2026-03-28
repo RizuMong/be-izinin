@@ -7,9 +7,15 @@ dotenv.config();
 
 const PORT = process.env.PORT;
 
-// master afdeling
+// auth
+const authController = require("./auth/auth.controller");
+app.use("/auth", authController);
+
+// master data
 const afdelingController = require("./afdeling/afdeling.controller");
 app.use("/afdeling", afdelingController);
+
+// time off
 
 app.listen(PORT, () => {
     console.log("Express Running on PORT", PORT);
