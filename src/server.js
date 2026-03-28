@@ -27,8 +27,8 @@ app.use("/job-position", jobPositionController);
 const siteController = require("./master-site/site.controller");
 app.use("/site", siteController);
 
-// const timeOffController = require("./master-holiday/holiday.controller");
-// app.use("/time-off", timeOffController);
+const timeOffController = require("./master-time-off/time-off.controller");
+app.use("/time-off", timeOffController);
 
 // time off
 
