@@ -13,6 +13,18 @@ const {
     updateTimeOffEmployee
 } = require("../time-off-employee/time-off-employee.repository");
 
+const { TIMEOFF_APPROVERS } = require("./timeoff-approver.config");
+
+const validateFK = async (table, id, label) => {
+    const { data } = await findById(table, id);
+
+    if (!data) {
+        const err = new Error(`${label} not found`);
+        err.status = 404;
+        throw err;
+    }
+};
+
 const STATUS = {
     DRAFT: "DRAFT",
     SUBMITTED: "SUBMITTED",
@@ -103,7 +115,13 @@ const getAllTimeOffRequestService = async (params) => {
 };
 
 const createDraftService = async (body) => {
-    const { employee_id, timeoff_id, start_date, end_date, reason } = body;
+    const {
+        employee_id,
+        timeoff_id,
+        start_date,
+        end_date,
+        reason
+    } = body;
 
     if (!employee_id || !timeoff_id || !start_date || !end_date) {
         throw new Error("Incomplete data");
@@ -111,7 +129,11 @@ const createDraftService = async (body) => {
 
     if (new Date(start_date) > new Date(end_date)) {
         throw new Error("Invalid date range");
-    }
+    };
+
+    // FK validation
+    await validateFK("master_employee", employee_id, "Employee");
+    await validateFK("master_timeoff", timeoff_id, "Time Off");
 
     const { data: overlap } = await findOverlap(
         employee_id,
@@ -139,35 +161,52 @@ const createDraftService = async (body) => {
         throw new Error("Kuota tidak mencukupi");
     }
 
-    // potong quota
-    await updateTimeOffEmployee(quota.id, {
-        remaining_balance: quota.remaining_balance - total_days,
-        used_quota: quota.used_quota + total_days
-    });
+    const originalRemaining = quota.remaining_balance;
+    const originalUsed = quota.used_quota;
 
-    const approval_logs = [
-        {
-            approver_id: "MANAGER_1",
-            approver_name: "Manager",
-            role: "MANAGER",
-            status: "PENDING",
-            comment: null,
-            approved_at: null
+    // build approval logs dari config
+    const approval_logs = TIMEOFF_APPROVERS.map(a => ({
+        approver_id: a.approver_id,
+        approver_name: a.approver_name,
+        email: a.email,
+        role: a.role,
+        status: "PENDING",
+        comment: null,
+        approved_at: null
+    }));
+
+    try {
+        await updateTimeOffEmployee(quota.id, {
+            remaining_balance: originalRemaining - total_days,
+            used_quota: originalUsed + total_days
+        });
+
+        const { data, error } = await createRequest({
+            employee_id,
+            timeoff_id,
+            start_date,
+            end_date,
+            total_days,
+            reason,
+            status: STATUS.DRAFT,
+            approval_logs
+        });
+
+        if (error) throw new Error(error.message);
+        if (!data || data.length === 0) {
+            throw new Error("Gagal membuat draft");
         }
-    ];
 
-    const { data } = await createRequest({
-        employee_id,
-        timeoff_id,
-        start_date,
-        end_date,
-        total_days,
-        reason,
-        status: STATUS.DRAFT,
-        approval_logs
-    });
+        return data;
 
-    return data;
+    } catch (err) {
+        await updateTimeOffEmployee(quota.id, {
+            remaining_balance: originalRemaining,
+            used_quota: originalUsed
+        });
+
+        throw err;
+    }
 };
 
 const updateDraftService = async (id, body) => {
@@ -261,7 +300,7 @@ const submitService = async (id) => {
     return await updateRequest(id, { status: STATUS.SUBMITTED });
 };
 
-const approveService = async (id) => {
+const approveService = async (id, userEmail) => {
     const { data } = await findById(id);
 
     if (!data) throw new Error("Data tidak ditemukan");
@@ -269,19 +308,38 @@ const approveService = async (id) => {
         throw new Error("Status tidak valid");
     }
 
-    const logs = data.approval_logs.map(a => ({
-        ...a,
-        status: "APPROVED",
-        approved_at: new Date().toISOString()
-    }));
+    // cari approver berdasarkan email
+    const approver = data.approval_logs.find(a => a.email === userEmail);
+
+    if (!approver) {
+        throw new Error("Anda tidak memiliki akses untuk approve");
+    }
+
+    if (approver.status !== "PENDING") {
+        throw new Error("Anda sudah melakukan approval");
+    }
+
+    const updatedLogs = data.approval_logs.map(a => {
+        if (a.email === userEmail) {
+            return {
+                ...a,
+                status: "APPROVED",
+                approved_at: new Date().toISOString()
+            };
+        }
+        return a;
+    });
+
+    // cek apakah semua sudah approve
+    const allApproved = updatedLogs.every(a => a.status === "APPROVED");
 
     return await updateRequest(id, {
-        status: STATUS.APPROVED,
-        approval_logs: logs
+        status: allApproved ? STATUS.APPROVED : STATUS.SUBMITTED,
+        approval_logs: updatedLogs
     });
 };
 
-const rejectService = async (id) => {
+const rejectService = async (id, userEmail) => {
     const { data } = await findById(id);
 
     if (!data) throw new Error("Data tidak ditemukan");
@@ -289,13 +347,24 @@ const rejectService = async (id) => {
         throw new Error("Status tidak valid");
     }
 
-    const logs = data.approval_logs.map(a => ({
-        ...a,
-        status: "REJECTED",
-        approved_at: new Date().toISOString()
-    }));
+    const approver = data.approval_logs.find(a => a.email === userEmail);
 
-    // balikin quota
+    if (!approver) {
+        throw new Error("Anda tidak memiliki akses untuk reject");
+    }
+
+    const updatedLogs = data.approval_logs.map(a => {
+        if (a.email === userEmail) {
+            return {
+                ...a,
+                status: "REJECTED",
+                approved_at: new Date().toISOString()
+            };
+        }
+        return a;
+    });
+
+    // rollback quota
     const { data: quota } = await findByEmployeeAndTimeoff(
         data.employee_id,
         data.timeoff_id,
@@ -309,7 +378,7 @@ const rejectService = async (id) => {
 
     return await updateRequest(id, {
         status: STATUS.REJECTED,
-        approval_logs: logs
+        approval_logs: updatedLogs
     });
 };
 
