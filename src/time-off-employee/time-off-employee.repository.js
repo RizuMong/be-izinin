@@ -45,6 +45,22 @@ const findById = async (table, id) => {
         .single();
 };
 
+const findByEmployeeAndTimeoff = async (employee_id, timeoff_id, period) => {
+    const year = new Date(period).getFullYear();
+
+    const startOfYear = `${year}-01-01`;
+    const endOfYear = `${year}-12-31`;
+
+    return await db
+        .from("master_timeoff_employee")
+        .select("*")
+        .eq("employee_id", employee_id)
+        .eq("timeoff_id", timeoff_id)
+        .gte("period", startOfYear)
+        .lte("period", endOfYear)
+        .maybeSingle();
+};
+
 const createTimeOffEmployee = async (payload) => {
     return await db
         .from("master_timeoff_employee")
@@ -71,7 +87,8 @@ const updateTimeOffEmployee = async (id, payload) => {
 module.exports = {
     findAll,
     findById,
+    findByEmployeeAndTimeoff,
     createTimeOffEmployee,
-    deleteTimeOffEmployee,
-    updateTimeOffEmployee
+    updateTimeOffEmployee,
+    deleteTimeOffEmployee
 };
