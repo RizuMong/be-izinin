@@ -1,3 +1,4 @@
+// time-off-employee.repository.js
 const db = require("../db");
 
 const findAll = async ({
@@ -51,14 +52,15 @@ const findByEmployeeAndTimeoff = async (employee_id, timeoff_id, period) => {
     const startOfYear = `${year}-01-01`;
     const endOfYear = `${year}-12-31`;
 
-    return await db
+    const result = await db
         .from("master_timeoff_employee")
         .select("*")
         .eq("employee_id", employee_id)
         .eq("timeoff_id", timeoff_id)
         .gte("period", startOfYear)
-        .lte("period", endOfYear)
-        .maybeSingle();
+        .lte("period", endOfYear);
+        
+    return result;
 };
 
 const createTimeOffEmployee = async (payload) => {

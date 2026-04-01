@@ -37,8 +37,8 @@ app.use("/time-off/employee", timeOffEmployeeController);
 const adjustmentTimeOffController = require("./adjustment-time-off/adjustment-time-off.controller");
 app.use("/adjustment-time-off/employee", adjustmentTimeOffController);
 
-// const requestTimeOffController = require("./request-time-off/request-time-off.controller");
-// app.use("/time-off-request", requestTimeOffController);
+const requestTimeOffController = require("./request-time-off/request-time-off.controller");
+app.use("/time-off-request", requestTimeOffController);
 
 app.listen(PORT, () => {
     console.log("Express Running on PORT", PORT);
