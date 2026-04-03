@@ -56,7 +56,7 @@ const createSiteService = async (body) => {
         throw new Error("Name is required");
     }
 
-    const nameRegex = /^[A-Za-z\s]+$/;
+    const nameRegex = /^[A-Za-z0-9\s]+$/;
     if (!nameRegex.test(name)) {
         throw new Error("Name cannot contain special characters");
     }
@@ -108,7 +108,7 @@ const updateSiteService = async (id, body) => {
         throw err;
     }
 
-    const nameRegex = /^[A-Za-z\s]+$/;
+    const nameRegex = /^[A-Za-z0-9\s]+$/;
     if (!nameRegex.test(name)) {
         throw new Error("Name cannot contain special characters");
     }

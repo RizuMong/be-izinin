@@ -70,7 +70,7 @@ const createHolidayService = async (body) => {
         throw new Error("Name is required");
     }
 
-    const nameRegex = /^[A-Za-z\s]+$/;
+    const nameRegex = /^[A-Za-z0-9\s]+$/;
     if (!nameRegex.test(name)) {
         throw new Error("Name cannot contain special characters");
     }
@@ -137,7 +137,7 @@ const updateHolidayService = async (id, body) => {
             throw new Error("Name cannot be empty");
         }
 
-        const nameRegex = /^[A-Za-z\s]+$/;
+        const nameRegex = /^[A-Za-z0-9\s]+$/;
         if (!nameRegex.test(name)) {
             throw new Error("Name cannot contain special characters");
         }

@@ -130,7 +130,7 @@ const createEmployeeService = async (body) => {
         throw new Error("Full Name is required");
     }
 
-    const nameRegex = /^[A-Za-z\s]+$/;
+    const nameRegex = /^[A-Za-z0-9\s]+$/;
     if (!nameRegex.test(full_name)) {
         throw new Error("Full Name cannot contain special characters");
     }
@@ -259,7 +259,7 @@ const updateEmployeeService = async (id, body) => {
             throw new Error("Full Name is required");
         }
 
-        const nameRegex = /^[A-Za-z\s]+$/;
+        const nameRegex = /^[A-Za-z0-9\s]+$/;
         if (!nameRegex.test(full_name)) {
             throw new Error("Full Name cannot contain special characters");
         }
