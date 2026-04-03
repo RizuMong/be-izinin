@@ -1,4 +1,4 @@
-const { findAll, createHoliday, deleteHoliday } = require("./holiday.repository");
+const { findAll, createHoliday, updateHoliday, deleteHoliday } = require("./holiday.repository");
 
 const getAHoliday = async (params) => {
     let {
