@@ -40,6 +40,11 @@ app.use("/adjustment-time-off/employee", adjustmentTimeOffController);
 const requestTimeOffController = require("./request-time-off/request-time-off.controller");
 app.use("/time-off-request", requestTimeOffController);
 
+// user
+const userController = require("./user/user.controller");
+app.use("/user", userController);
+
+
 app.listen(PORT, () => {
-    console.log("Express Running on PORT", PORT);
+    console.log("Server running on port", PORT);
 });

@@ -9,7 +9,12 @@ const findAll = async ({
 }) => {
     let query = db
         .from("master_employee")
-        .select("*", { count: "exact" });
+        .select(`
+            *,
+            site:master_site(id, name),
+            afdeling:master_afdeling(id, name),
+            job_position:master_job_position(id, name)
+        `, { count: "exact" });
 
     // filters
     if (filters.full_name) {
@@ -29,7 +34,7 @@ const findAll = async ({
     }
 
     if (filters.npk) {
-        query = query.ilike("npk", filters.npk);
+        query = query.ilike("npk", `%${filters.npk}%`);
     }
 
     if (filters.job_position_id) {
@@ -40,10 +45,10 @@ const findAll = async ({
         query = query.eq("tmk", filters.tmk);
     }
 
-    // Sorting
+    // sorting
     query = query.order(sortBy, { ascending: order === "asc" });
 
-    // Pagination
+    // pagination
     query = query.range(from, to);
 
     return await query;
