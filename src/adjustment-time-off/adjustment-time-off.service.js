@@ -15,6 +15,12 @@ const validateFK = async (table, id, label) => {
     }
 };
 
+const safeNumber = (val) => {
+    if (val === undefined || val === "undefined" || val === "") return null;
+    const parsed = parseInt(val);
+    return isNaN(parsed) ? null : parsed;
+};
+
 const OPERATION = {
     PLUS: "PENAMBAHAN",
     MINUS: "PENGURANGAN"
@@ -52,17 +58,17 @@ const getAAdjustmentTimeOff = async (params) => {
     // filter
     const filters = {};
 
-    if (id) {
-        filters.id = id;
-    }
+if (id !== undefined && id !== "undefined") {
+    filters.id = parseInt(id);
+}
 
-    if (employee_id) {
-        filters.employee_id = employee_id;
-    }
+if (employee_id !== undefined && employee_id !== "undefined") {
+    filters.employee_id = parseInt(employee_id);
+}
 
-    if (timeoff_id) {
-        filters.timeoff_id = timeoff_id;
-    }
+if (timeoff_id !== undefined && timeoff_id !== "undefined") {
+    filters.timeoff_id = parseInt(timeoff_id);
+}
 
     if (period) {
         filters.period = period;
@@ -97,12 +103,16 @@ const getAAdjustmentTimeOff = async (params) => {
 
 const createAdjustmentTimeOffService = async (body) => {
     const {
-        employee_id,
-        timeoff_id,
-        total_quota,
+        employee_id: rawEmployeeId,
+        timeoff_id: rawTimeoffId,
+        total_quota: rawTotalQuota,
         period,
         operation,
     } = body;
+
+    const employee_id = safeNumber(rawEmployeeId);
+    const timeoff_id = safeNumber(rawTimeoffId);
+    const total_quota = safeNumber(rawTotalQuota);
 
     // validation
     if (!employee_id) {
@@ -117,7 +127,7 @@ const createAdjustmentTimeOffService = async (body) => {
         throw new Error("Period is required");
     }
 
-    if (total_quota === undefined || total_quota === null) {
+    if (total_quota === null) {
         throw new Error("Total Quota is required");
     }
 
@@ -144,7 +154,7 @@ const createAdjustmentTimeOffService = async (body) => {
     await validateFK("master_employee", employee_id, "Employee");
     await validateFK("master_timeoff", timeoff_id, "Time Off");
 
-    // check existing (by year)
+    // check existing
     const { data: existing, error: existingError } =
         await findByEmployeeAndTimeoff(employee_id, timeoff_id, period);
 
@@ -152,7 +162,6 @@ const createAdjustmentTimeOffService = async (body) => {
         throw new Error(existingError.message);
     }
 
-    // business logic
     if (!existing) {
         if (normalizedOperation === OPERATION.MINUS) {
             throw new Error("Tidak bisa melakukan pengurangan, data belum ada");
@@ -207,7 +216,6 @@ const createAdjustmentTimeOffService = async (body) => {
         }
     }
 
-    // insert adjustment log
     const { data, error } = await createAdjustmentTimeOff({
         employee_id,
         timeoff_id,
@@ -224,11 +232,13 @@ const createAdjustmentTimeOffService = async (body) => {
 };
 
 const deleteAdjustmentTimeOffService = async (id) => {
-    if (!id || isNaN(id)) {
+    const parsedId = safeNumber(id);
+
+    if (!parsedId) {
         throw new Error("Invalid ID");
     }
 
-    const { data, error } = await deleteAdjustmentTimeOff(id);
+    const { data, error } = await deleteAdjustmentTimeOff(parsedId);
 
     if (error) {
         throw new Error(error.message);
@@ -244,63 +254,54 @@ const deleteAdjustmentTimeOffService = async (id) => {
 };
 
 const updateAdjustmentTimeOffService = async (id, body) => {
-    const parsedId = parseInt(id);
+    const parsedId = safeNumber(id);
 
-    if (!parsedId || isNaN(parsedId)) {
+    if (!parsedId) {
         throw new Error("Invalid ID");
     }
 
     const {
-        employee_id,
-        timeoff_id,
-        total_quota,
+        employee_id: rawEmployeeId,
+        timeoff_id: rawTimeoffId,
+        total_quota: rawTotalQuota,
         period,
         operation,
     } = body;
 
     const payload = {};
 
-    if (employee_id !== undefined) {
-        if (!employee_id) {
-            throw new Error("Employee is required");
-        }
+    const employee_id = safeNumber(rawEmployeeId);
+    const timeoff_id = safeNumber(rawTimeoffId);
+    const total_quota = safeNumber(rawTotalQuota);
 
+    if (employee_id !== null) {
         await validateFK("master_employee", employee_id, "Employee");
-
         payload.employee_id = employee_id;
     }
 
-    if (timeoff_id !== undefined) {
-        if (!timeoff_id) {
-            throw new Error("Time Off is required");
-        }
-
+    if (timeoff_id !== null) {
         await validateFK("master_timeoff", timeoff_id, "Time Off");
-
         payload.timeoff_id = timeoff_id;
     }
 
-    if (total_quota !== undefined) {
-        if (!total_quota) {
-            throw new Error("Total Quota is required");
+    if (total_quota !== null) {
+        if (total_quota <= 0) {
+            throw new Error("Total Quota must be greater than 0");
         }
-
         payload.total_quota = total_quota;
     }
 
     if (operation !== undefined) {
-        if (!operation) {
-            throw new Error("Operation is required");
+        const normalizedOperation = operation.toUpperCase();
+
+        if (![OPERATION.PLUS, OPERATION.MINUS].includes(normalizedOperation)) {
+            throw new Error("Invalid operation");
         }
 
-        payload.operation = operation;
+        payload.operation = normalizedOperation;
     }
 
     if (period !== undefined) {
-        if (!period) {
-            throw new Error("Period is required");
-        }
-
         const isValidDate = /^\d{4}-\d{2}-\d{2}$/;
         if (!isValidDate.test(period)) {
             throw new Error("Invalid date format (YYYY-MM-DD expected)");
@@ -312,7 +313,6 @@ const updateAdjustmentTimeOffService = async (id, body) => {
     if (Object.keys(payload).length === 0) {
         throw new Error("No data provided for update");
     }
-
 
     const { data, error } = await updateAdjustmentTimeOff(parsedId, payload);
 

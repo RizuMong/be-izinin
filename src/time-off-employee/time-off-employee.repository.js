@@ -1,6 +1,12 @@
 // time-off-employee.repository.js
 const db = require("../db");
 
+const safeNumber = (val) => {
+    if (val === undefined || val === "undefined" || val === "") return null;
+    const parsed = parseInt(val);
+    return isNaN(parsed) ? null : parsed;
+};
+
 const findAll = async ({
     from,
     to,
@@ -47,20 +53,20 @@ const findById = async (table, id) => {
 };
 
 const findByEmployeeAndTimeoff = async (employee_id, timeoff_id, period) => {
-    const year = new Date(period).getFullYear();
+    const safeEmployeeId = safeNumber(employee_id);
+    const safeTimeoffId = safeNumber(timeoff_id);
 
-    const startOfYear = `${year}-01-01`;
-    const endOfYear = `${year}-12-31`;
+    if (!safeEmployeeId || !safeTimeoffId || !period) {
+        return { data: null, error: null };
+    }
 
-    const result = await db
+    return await db
         .from("master_timeoff_employee")
         .select("*")
-        .eq("employee_id", employee_id)
-        .eq("timeoff_id", timeoff_id)
-        .gte("period", startOfYear)
-        .lte("period", endOfYear);
-        
-    return result;
+        .eq("employee_id", safeEmployeeId)
+        .eq("timeoff_id", safeTimeoffId)
+        .eq("period", period)
+        .maybeSingle();
 };
 
 const createTimeOffEmployee = async (payload) => {
