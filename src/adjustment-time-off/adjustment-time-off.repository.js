@@ -9,16 +9,26 @@ const findAll = async ({
 }) => {
     let query = db
         .from("t_timeoff_adjustment")
-        .select("*", { count: "exact" });
+        .select(`
+        *,
+        employee:master_employee (
+            id,
+            full_name
+        ),
+        time_off:master_timeoff (
+            id,
+            name
+        )
+    `, { count: "exact" });
 
     // filters
     if (filters.id) {
         query = query.eq("id", filters.id);
     }
 
-if (filters.employee_id !== undefined && !isNaN(filters.employee_id)) {
-    query = query.eq("employee_id", filters.employee_id);
-}
+    if (filters.employee_id !== undefined && !isNaN(filters.employee_id)) {
+        query = query.eq("employee_id", filters.employee_id);
+    }
 
     if (filters.timeoff_id) {
         query = query.eq("timeoff_id", filters.timeoff_id);

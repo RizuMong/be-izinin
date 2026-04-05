@@ -58,17 +58,17 @@ const getAAdjustmentTimeOff = async (params) => {
     // filter
     const filters = {};
 
-if (id !== undefined && id !== "undefined") {
-    filters.id = parseInt(id);
-}
+    if (id !== undefined && id !== "undefined") {
+        filters.id = parseInt(id);
+    }
 
-if (employee_id !== undefined && employee_id !== "undefined") {
-    filters.employee_id = parseInt(employee_id);
-}
+    if (employee_id !== undefined && employee_id !== "undefined") {
+        filters.employee_id = parseInt(employee_id);
+    }
 
-if (timeoff_id !== undefined && timeoff_id !== "undefined") {
-    filters.timeoff_id = parseInt(timeoff_id);
-}
+    if (timeoff_id !== undefined && timeoff_id !== "undefined") {
+        filters.timeoff_id = parseInt(timeoff_id);
+    }
 
     if (period) {
         filters.period = period;
