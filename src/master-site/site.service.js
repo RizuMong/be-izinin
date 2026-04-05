@@ -1,4 +1,5 @@
 const { findAll, createSite, deleteSite, updateSite } = require("./site.repository");
+const { validateDuplicate } = require("../utils/validator");
 
 const getSite = async (params) => {
     let {
@@ -61,6 +62,13 @@ const createSiteService = async (body) => {
         throw new Error("Name cannot contain special characters");
     }
 
+    await validateDuplicate({
+        table: "master_site",
+        field: "name",
+        value: name,
+        label: "Name"
+    });
+
     const { data, error } = await createSite({ name });
 
     if (error) {
@@ -112,6 +120,14 @@ const updateSiteService = async (id, body) => {
     if (!nameRegex.test(name)) {
         throw new Error("Name cannot contain special characters");
     }
+
+    await validateDuplicate({
+        table: "master_site",
+        field: "name",
+        value: name,
+        label: "Name",
+        excludeId: parsedId
+    });
 
     const { data, error } = await updateSite(parsedId, { name });
 

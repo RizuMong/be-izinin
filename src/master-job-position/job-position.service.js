@@ -1,4 +1,5 @@
 const { findAll, createJobPosition, deleteJobPosition, updateJobPosition } = require("./job-position.repository");
+const { validateDuplicate } = require("../utils/validator");
 
 const getJobPosition = async (params) => {
     let {
@@ -61,6 +62,13 @@ const createJobPositionService = async (body) => {
         throw new Error("Name cannot contain special characters");
     }
 
+    await validateDuplicate({
+        table: "master_job_position",
+        field: "name",
+        value: name,
+        label: "Name"
+    });
+
     const { data, error } = await createJobPosition({ name });
 
     if (error) {
@@ -107,6 +115,14 @@ const updateJobPositionService = async (id, body) => {
         err.status = 400;
         throw err;
     }
+
+    await validateDuplicate({
+        table: "master_job_position",
+        field: "name",
+        value: name,
+        label: "Name",
+        excludeId: parsedId
+    });
 
     const { data, error } = await updateJobPosition(parsedId, { name });
 

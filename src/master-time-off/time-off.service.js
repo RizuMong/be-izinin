@@ -1,4 +1,5 @@
 const { findAll, createTimeOff, deleteTimeOff, updateTimeOff } = require("./time-off.repository");
+const { validateDuplicate } = require("../utils/validator");
 
 const getTimeOff = async (params) => {
     let {
@@ -70,6 +71,13 @@ const createTimeOffService = async (body) => {
         throw new Error("Name cannot contain special characters");
     }
 
+    await validateDuplicate({
+        table: "master_time_off",
+        field: "name",
+        value: name,
+        label: "Name"
+    });
+
     if (!timeoff_type) {
         throw new Error("Time Off is required");
     }
@@ -125,6 +133,15 @@ const updateTimeOffService = async (id, body) => {
     if (!nameRegex.test(name)) {
         throw new Error("Name cannot contain special characters");
     }
+
+    await validateDuplicate({
+        table: "master_time_off",
+        field: "name",
+        value: name,
+        label: "Name",
+        excludeId: parsedId
+    });
+
 
     if (!timeoff_type) {
         const err = new Error("Time Off Type is required");

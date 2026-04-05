@@ -1,4 +1,5 @@
 const { findAll, createAfdeling, deleteAfdeling, updateAfdeling } = require("./afdeling.repository");
+const { validateDuplicate } = require("../utils/validator");
 
 const getAfdeling = async (params) => {
     let {
@@ -61,6 +62,13 @@ const createAfdelingService = async (body) => {
         throw new Error("Name cannot contain special characters");
     }
 
+    await validateDuplicate({
+        table: "master_afdeling",
+        field: "name",
+        value: name,
+        label: "Name"
+    });
+
     const { data, error } = await createAfdeling({ name });
 
     if (error) {
@@ -112,6 +120,14 @@ const updateAfdelingService = async (id, body) => {
     if (!nameRegex.test(name)) {
         throw new Error("Name cannot contain special characters");
     }
+
+    await validateDuplicate({
+        table: "master_afdeling",
+        field: "name",
+        value: name,
+        label: "Name",
+        excludeId: parsedId
+    });
 
     const { data, error } = await updateAfdeling(parsedId, { name });
 
