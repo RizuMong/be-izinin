@@ -17,7 +17,17 @@ const findAll = async ({
 }) => {
     let query = db
         .from("t_request_timeoff")
-        .select("*", { count: "exact" });
+        .select(`
+            *,
+            employee:master_employee (
+                id,
+               name:full_name
+            ),
+            time_off:master_timeoff (
+                id,
+                name
+            )
+        `, { count: "exact" });
 
     // filters
     if (filters.employee_id) {
