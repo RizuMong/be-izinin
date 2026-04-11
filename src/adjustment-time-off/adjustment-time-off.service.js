@@ -199,7 +199,7 @@ const createAdjustmentTimeOffService = async (body) => {
             }
 
             newRemaining -= total_quota;
-            newUsed += total_quota;
+            // newUsed += total_quota;
         }
 
         const { error: updateError } = await updateTimeOffEmployee(
