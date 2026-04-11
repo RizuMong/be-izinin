@@ -15,19 +15,19 @@ const findAll = async ({
     order,
     filters = {}
 }) => {
-    let query = db
-        .from("t_request_timeoff")
-        .select(`
-            *,
-            employee:master_employee (
-                id,
-               name:full_name
-            ),
-            time_off:master_timeoff (
-                id,
-                name
-            )
-        `, { count: "exact" });
+let query = db
+    .from("t_request_timeoff")
+    .select(`
+        *,
+        employee:master_employee (
+            id,
+            name:full_name
+        ),
+        time_off:master_timeoff (
+            id,
+            name
+        )
+    `, { count: "exact" });
 
     // filters
     if (filters.employee_id) {
