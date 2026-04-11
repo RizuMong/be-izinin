@@ -127,7 +127,7 @@ const findEmployeeById = async (id) => {
         .from("master_employee")
         .select("id, name, email")
         .eq("id", id)
-        .maybeSingle();
+        .select("*", { count: "exact" }).single();
 };
 
 module.exports = {

@@ -367,6 +367,8 @@ const rejectService = async (id, userEmail, body) => {
     const { reason } = body;
 
     const { data } = await findById("t_request_timeoff", parseInt(id));
+    console.log(data);
+    
 
     if (!data) throw new Error("Data tidak ditemukan");
 
@@ -420,20 +422,20 @@ const rejectService = async (id, userEmail, body) => {
         used_quota: newUsed
     });
 
-    const { data: employee } = await findEmployeeById(data.employee_id);
+    // const { data: employee } = await findEmployeeById(parseInt(data.employee_id));
 
-    if (!employee) {
-        throw new Error("Employee tidak ditemukan");
-    }
+    // if (!employee) {
+    //     throw new Error("Employee tidak ditemukan");
+    // }
 
-    const requesterEmail = employee.email;
-    const requesterName = employee.name;
+    // const requesterEmail = employee.email;
+    // const requesterName = employee.name;
 
-    console.log("Sending reject email to:", requesterEmail);
+    // kalau butuh
+    // sendRejectEmail(requesterEmail, requesterName).catch(err => {
+    //     console.error("Failed to send reject email:", err.message);
+    // });
 
-    sendRejectEmail(requesterEmail, requesterName).catch(err => {
-        console.error("Failed to send reject email:", err.message);
-    });
 
     return await updateRequest(id, {
         status: STATUS.REJECTED,
