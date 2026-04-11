@@ -62,6 +62,26 @@ const findById = async (table, id) => {
         .single();
 };
 
+const findTimeoffEmployee = async (employee_id, timeoff_id, period) => {
+    const safeEmployeeId = safeNumber(employee_id);
+    const safeTimeoffId = safeNumber(timeoff_id);
+
+    if (!safeEmployeeId || !safeTimeoffId || !period) {
+        return { data: null, error: null };
+    }
+
+    const year = new Date(period).getFullYear();
+
+    return await db
+        .from("master_timeoff_employee")
+        .select("*")
+        .eq("employee_id", safeEmployeeId)
+        .eq("timeoff_id", safeTimeoffId)
+        .filter("period", "gte", `${year}-01-01`)
+        .filter("period", "lte", `${year}-12-31`)
+        .maybeSingle();
+};
+
 const findByEmployeeAndTimeoff = async (employee_id, timeoff_id, period) => {
     const safeEmployeeId = safeNumber(employee_id);
     const safeTimeoffId = safeNumber(timeoff_id);
@@ -108,5 +128,6 @@ module.exports = {
     findByEmployeeAndTimeoff,
     createTimeOffEmployee,
     updateTimeOffEmployee,
-    deleteTimeOffEmployee
+    deleteTimeOffEmployee,
+    findTimeoffEmployee
 };

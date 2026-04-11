@@ -1,4 +1,13 @@
-const { findAll, findById, findByEmployeeAndTimeoff, createTimeOffEmployee, deleteTimeOffEmployee, updateTimeOffEmployee } = require("./time-off-employee.repository");
+const {
+    findAll,
+    findById,
+    findByEmployeeAndTimeoff,
+    createTimeOffEmployee,
+    deleteTimeOffEmployee,
+    updateTimeOffEmployee ,
+    findTimeoffEmployee
+}
+    = require("./time-off-employee.repository");
 
 const validateFK = async (table, id, label) => {
     const { data } = await findById(table, id);
@@ -104,6 +113,8 @@ const createTimeOffEmployeeService = async (body) => {
         used_quota
     } = body;
 
+    const total_days = await calculateDays(start_date, end_date);
+
     if (!employee_id) {
         throw new Error("Employee is required");
     }
@@ -129,6 +140,21 @@ const createTimeOffEmployeeService = async (body) => {
     await validateFK("master_employee", employee_id, "Employee");
     await validateFK("master_timeoff", timeoff_id, "Time Off");
 
+    // Time Off Employee Validation
+    const { data: quota } = await findTimeoffEmployee(
+        employee_id,
+        timeoff_id,
+        period
+    );
+
+    if (!quota) {
+        throw new Error(`Data kuota cuti tidak ditemukan untuk periode ${period}`);
+    };
+    
+    if (quota.remaining_balance < total_days) {
+        throw new Error(`Kuota tidak mencukupi. Sisa kuota Anda: ${quota.remaining_balance} hari, sedangkan yang diajukan: ${total_days} hari.`);
+    };
+
     // duplicate validation
     const { data: existing } = await findByEmployeeAndTimeoff(
         employee_id,
@@ -136,13 +162,14 @@ const createTimeOffEmployeeService = async (body) => {
         period
     );
 
+
     console.log({
         employee_id: employee_id,
         timeoff_id: timeoff_id,
         period: period,
         existing: existing
     });
-    
+
 
     if (existing) {
         throw new Error("Data time off employee untuk tahun ini sudah ada");
