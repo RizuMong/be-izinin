@@ -1,14 +1,14 @@
 const TIMEOFF_APPROVERS = [
     {
-        approver_id: "EMP002",
+        employee_id: 1,
         approver_name: "Manager",
-        email: "manager@company.com",
+        email: "rizkiyoga177@gmail.com",
         role: "MANAGER"
     },
     {
-        approver_id: "EMP003",
+        employee_id: 2,
         approver_name: "HR",
-        email: "hr@company.com",
+        email: "rizkihaddiprayoga@gmail.com",
         role: "HR"
     }
 ];

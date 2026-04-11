@@ -2,6 +2,12 @@
 
 const db = require("../db");
 
+const safeNumber = (val) => {
+    if (val === undefined || val === "undefined" || val === "") return null;
+    const parsed = parseInt(val);
+    return isNaN(parsed) ? null : parsed;
+};
+
 const findAll = async ({
     from,
     to,
@@ -43,6 +49,26 @@ const findAll = async ({
     return await query;
 };
 
+const findTimeoffEmployee = async (employee_id, timeoff_id, period) => {
+    const safeEmployeeId = safeNumber(employee_id);
+    const safeTimeoffId = safeNumber(timeoff_id);
+
+    if (!safeEmployeeId || !safeTimeoffId || !period) {
+        return { data: null, error: null };
+    }
+
+    const year = new Date(period).getFullYear();
+
+    return await db
+        .from("master_timeoff_employee")
+        .select("*")
+        .eq("employee_id", safeEmployeeId)
+        .eq("timeoff_id", safeTimeoffId)
+        .filter("period", "gte", `${year}-01-01`)
+        .filter("period", "lte", `${year}-12-31`)
+        .maybeSingle();
+};
+
 const createRequest = async (payload) => {
     return await db
         .from("t_request_timeoff")
@@ -63,7 +89,7 @@ const findById = async (table, id) => {
         .from(table)
         .select("id")
         .eq("id", id)
-        .single();
+        .select("*", { count: "exact" }).single();
 };
 
 const findOverlap = async (employee_id, start_date, end_date) => {
@@ -82,11 +108,21 @@ const getHolidays = async (start, end) => {
         .lte("date", end);
 };
 
+const findEmployeeById = async (id) => {
+    return await db
+        .from("master_employee")
+        .select("id, name, email")
+        .eq("id", id)
+        .maybeSingle();
+};
+
 module.exports = {
     findAll,
     createRequest,
     updateRequest,
     findById,
     findOverlap,
-    getHolidays
+    getHolidays,
+    findTimeoffEmployee,
+    findEmployeeById
 };

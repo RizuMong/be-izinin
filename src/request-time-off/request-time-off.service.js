@@ -4,14 +4,16 @@ const {
     createRequest,
     updateRequest,
     findById,
-    findOverlap,
-    getHolidays
+    findTimeoffEmployee,
+    getHolidays,
+    findEmployeeById
 } = require("./request-time-off.repository");
 
 const {
-    findByEmployeeAndTimeoff,
     updateTimeOffEmployee
 } = require("../time-off-employee/time-off-employee.repository");
+
+const { sendApprovalEmail, sendRejectEmail } = require("../utils/email/notification.service");
 
 const { TIMEOFF_APPROVERS } = require("./timeoff-approver.config");
 
@@ -135,23 +137,13 @@ const createDraftService = async (body) => {
     await validateFK("master_employee", employee_id, "Employee");
     await validateFK("master_timeoff", timeoff_id, "Time Off");
 
-    const { data: overlap } = await findOverlap(
-        employee_id,
-        start_date,
-        end_date
-    );
-
-    if (overlap.length > 0) {
-        throw new Error("Tanggal sudah diajukan");
-    }
-
     const total_days = await calculateDays(start_date, end_date);
 
     if (total_days <= 0) {
         throw new Error("Tidak ada hari cuti valid");
     }
 
-    const { data: quota } = await findByEmployeeAndTimeoff(
+    const { data: quota } = await findTimeoffEmployee(
         employee_id,
         timeoff_id,
         start_date
@@ -166,7 +158,7 @@ const createDraftService = async (body) => {
 
     // build approval logs dari config
     const approval_logs = TIMEOFF_APPROVERS.map(a => ({
-        approver_id: a.approver_id,
+        employee_id: a.employee_id,
         approver_name: a.approver_name,
         email: a.email,
         role: a.role,
@@ -232,19 +224,6 @@ const updateDraftService = async (id, body) => {
     const newStart = start_date || data.start_date;
     const newEnd = end_date || data.end_date;
 
-    // cek overlap (exclude dirinya sendiri)
-    const { data: overlap } = await findOverlap(
-        data.employee_id,
-        newStart,
-        newEnd
-    );
-
-    const filteredOverlap = overlap.filter(item => item.id !== id);
-
-    if (filteredOverlap.length > 0) {
-        throw new Error("Tanggal sudah diajukan");
-    }
-
     // hitung ulang hari
     const newTotalDays = await calculateDays(newStart, newEnd);
 
@@ -253,7 +232,7 @@ const updateDraftService = async (id, body) => {
     }
 
     // ambil quota
-    const { data: quota } = await findByEmployeeAndTimeoff(
+    const { data: quota } = await findTimeoffEmployee(
         data.employee_id,
         data.timeoff_id,
         newStart
@@ -290,25 +269,46 @@ const updateDraftService = async (id, body) => {
 };
 
 const submitService = async (id) => {
-    const { data } = await findById("t_request_timeoff", id);
+    const { data } = await findById("t_request_timeoff", parseInt(id));
 
     if (!data) throw new Error("Data tidak ditemukan");
+
     if (data.status !== STATUS.DRAFT) {
         throw new Error("Hanya draft yang bisa disubmit");
+    };
+
+    const { data: updated } = await updateRequest(id, {
+        status: STATUS.SUBMITTED
+    });
+
+    const firstApprover = data.approval_logs.find(
+        a => a.status?.toUpperCase() === "PENDING"
+    );
+
+
+    if (firstApprover) {
+        console.log("Sending email to:", firstApprover.email);
+
+        await sendApprovalEmail(
+            firstApprover.email,
+            firstApprover.approver_name
+        );
     }
 
-    return await updateRequest(id, { status: STATUS.SUBMITTED });
+    return updated;
 };
 
-const approveService = async (id, userEmail) => {
-    const { data } = await findById("t_request_timeoff", id);
+const approveService = async (id, userEmail, body) => {
+    const { reason } = body;
+
+    const { data } = await findById("t_request_timeoff", parseInt(id));
 
     if (!data) throw new Error("Data tidak ditemukan");
+
     if (data.status !== STATUS.SUBMITTED) {
         throw new Error("Status tidak valid");
     }
 
-    // cari approver berdasarkan email
     const approver = data.approval_logs.find(a => a.email === userEmail);
 
     if (!approver) {
@@ -316,7 +316,13 @@ const approveService = async (id, userEmail) => {
     }
 
     if (approver.status !== "PENDING") {
-        throw new Error("Anda sudah melakukan approval");
+        throw new Error("Anda sudah memproses request ini");
+    }
+
+    const currentApprover = data.approval_logs.find(a => a.status === "PENDING");
+
+    if (!currentApprover || approver.email !== currentApprover.email) {
+        throw new Error("Bukan giliran Anda untuk approve");
     }
 
     const updatedLogs = data.approval_logs.map(a => {
@@ -324,13 +330,26 @@ const approveService = async (id, userEmail) => {
             return {
                 ...a,
                 status: "APPROVED",
+                comment: reason,
                 approved_at: new Date().toISOString()
             };
         }
         return a;
     });
 
-    // cek apakah semua sudah approve
+    const nextApprover = updatedLogs.find(
+        a => a.status?.toUpperCase() === "PENDING"
+    );
+
+    if (nextApprover) {
+        console.log("Sending email to:", nextApprover.email);
+
+        await sendApprovalEmail(
+            nextApprover.email,
+            nextApprover.approver_name
+        );
+    }
+
     const allApproved = updatedLogs.every(a => a.status === "APPROVED");
 
     return await updateRequest(id, {
@@ -339,10 +358,13 @@ const approveService = async (id, userEmail) => {
     });
 };
 
-const rejectService = async (id, userEmail) => {
-    const { data } = await findById("t_request_timeoff", id);
+const rejectService = async (id, userEmail, body) => {
+    const { reason } = body;
+
+    const { data } = await findById("t_request_timeoff", parseInt(id));
 
     if (!data) throw new Error("Data tidak ditemukan");
+
     if (data.status !== STATUS.SUBMITTED) {
         throw new Error("Status tidak valid");
     }
@@ -353,28 +375,58 @@ const rejectService = async (id, userEmail) => {
         throw new Error("Anda tidak memiliki akses untuk reject");
     }
 
+    if (approver.status !== "PENDING") {
+        throw new Error("Anda sudah memproses request ini");
+    }
+
+    const currentApprover = data.approval_logs.find(a => a.status === "PENDING");
+
+    if (!currentApprover || approver.email !== currentApprover.email) {
+        throw new Error("Bukan giliran Anda untuk melakukan reject");
+    }
+
     const updatedLogs = data.approval_logs.map(a => {
         if (a.email === userEmail) {
             return {
                 ...a,
                 status: "REJECTED",
+                comment: reason,
                 approved_at: new Date().toISOString()
             };
         }
         return a;
     });
 
-    // rollback quota
-    const { data: quota } = await findByEmployeeAndTimeoff(
+    const { data: quota } = await findTimeoffEmployee(
         data.employee_id,
         data.timeoff_id,
         data.start_date
     );
 
+    if (!quota) {
+        throw new Error("Kuota cuti tidak ditemukan");
+    }
+
+    const newRemaining = quota.remaining_balance + data.total_days;
+    const newUsed = Math.max(0, quota.used_quota - data.total_days);
+
     await updateTimeOffEmployee(quota.id, {
-        remaining_balance: quota.remaining_balance + data.total_days,
-        used_quota: quota.used_quota - data.total_days
+        remaining_balance: newRemaining,
+        used_quota: newUsed
     });
+
+    const { data: employee } = await findEmployeeById(data.employee_id);
+
+    if (!employee) {
+        throw new Error("Employee tidak ditemukan");
+    }
+
+    const requesterEmail = employee.email;
+    const requesterName = employee.name;
+
+    console.log("Sending reject email to:", requesterEmail);
+
+    await sendRejectEmail(requesterEmail, requesterName);
 
     return await updateRequest(id, {
         status: STATUS.REJECTED,

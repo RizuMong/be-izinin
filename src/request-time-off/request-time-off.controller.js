@@ -4,6 +4,7 @@ const router = express.Router();
 
 const authMiddleware = require("../middleware/auth");
 
+
 const {
     getAllTimeOffRequestService,
     createDraftService,
@@ -77,12 +78,12 @@ router.put("/draft/:id", authMiddleware, async (req, res) => {
 });
 
 // submit
-router.put("/submit:id", authMiddleware, async (req, res) => {
+router.put("/submit/:id", authMiddleware, async (req, res) => {
     try {
         const data = await submitService(req.params.id);
 
         return res.status(200).json({
-            data,
+            data: {},
             message: "Berhasil submit",
             error: false
         });
@@ -99,10 +100,12 @@ router.put("/submit:id", authMiddleware, async (req, res) => {
 // approve
 router.put("/approve/:id", authMiddleware, async (req, res) => {
     try {
-        const data = await approveService(req.params.id);
+        const user = req.user;
+        const body = req.body;
+        const data = await approveService(req.params.id, user.email, body);
 
         return res.status(200).json({
-            data,
+            data: data.data,
             message: "Disetujui",
             error: false
         });
@@ -119,10 +122,12 @@ router.put("/approve/:id", authMiddleware, async (req, res) => {
 // reject
 router.put("/reject/:id", authMiddleware, async (req, res) => {
     try {
-        const data = await rejectService(req.params.id);
+        const user = req.user;
+        const body = req.body;
+        const data = await rejectService(req.params.id, user.email, body);
 
         return res.status(200).json({
-            data,
+            data: data.data,
             message: "Ditolak",
             error: false
         });
