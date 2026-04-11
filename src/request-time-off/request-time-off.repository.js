@@ -15,9 +15,9 @@ const findAll = async ({
     order,
     filters = {}
 }) => {
-let query = db
-    .from("t_request_timeoff")
-    .select(`
+    let query = db
+        .from("t_request_timeoff")
+        .select(`
         *,
         employee:master_employee (
             id,
@@ -39,7 +39,11 @@ let query = db
     }
 
     if (filters.status) {
-        query = query.eq("status", filters.status);
+        if (Array.isArray(filters.status)) {
+            query = query.in("status", filters.status);
+        } else {
+            query = query.eq("status", filters.status);
+        }
     }
 
     if (filters.start_date) {

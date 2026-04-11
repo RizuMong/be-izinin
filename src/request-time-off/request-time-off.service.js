@@ -77,19 +77,21 @@ const getAllTimeOffRequestService = async (params) => {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    // whitelist sorting
     const allowedSort = ["created_at", "start_date", "end_date", "status"];
 
     if (!allowedSort.includes(sortBy)) {
         sortBy = "created_at";
     }
 
-    // build filters
     const filters = {};
 
     if (employee_id) filters.employee_id = employee_id;
     if (timeoff_id) filters.timeoff_id = timeoff_id;
-    if (status) filters.status = status;
+
+    if (status) {
+        filters.status = status.split(",").map(s => s.trim().toUpperCase());
+    }
+
     if (start_date) filters.start_date = start_date;
     if (end_date) filters.end_date = end_date;
 
@@ -345,10 +347,12 @@ const approveService = async (id, userEmail, body) => {
     if (nextApprover) {
         console.log("Sending email to:", nextApprover.email);
 
-        await sendApprovalEmail(
+        sendApprovalEmail(
             nextApprover.email,
             nextApprover.approver_name
-        );
+        ).catch(err => {
+            console.error("Failed to send approval email:", err.message);
+        });
     }
 
     const allApproved = updatedLogs.every(a => a.status === "APPROVED");
@@ -427,7 +431,9 @@ const rejectService = async (id, userEmail, body) => {
 
     console.log("Sending reject email to:", requesterEmail);
 
-    await sendRejectEmail(requesterEmail, requesterName);
+    sendRejectEmail(requesterEmail, requesterName).catch(err => {
+        console.error("Failed to send reject email:", err.message);
+    });
 
     return await updateRequest(id, {
         status: STATUS.REJECTED,
