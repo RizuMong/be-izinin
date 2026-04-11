@@ -58,10 +58,10 @@ const updateRequest = async (id, payload) => {
         .select();
 };
 
-const findById = async (id) => {
+const findById = async (table, id) => {
     return await db
-        .from("t_request_timeoff")
-        .select("*")
+        .from(table)
+        .select("id")
         .eq("id", id)
         .single();
 };

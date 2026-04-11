@@ -212,7 +212,7 @@ const createDraftService = async (body) => {
 const updateDraftService = async (id, body) => {
     const { start_date, end_date, reason } = body;
 
-    const { data } = await findById(id);
+    const { data } = await findById("t_request_timeoff", id);
 
     if (!data) {
         throw new Error("Data tidak ditemukan");
@@ -290,7 +290,7 @@ const updateDraftService = async (id, body) => {
 };
 
 const submitService = async (id) => {
-    const { data } = await findById(id);
+    const { data } = await findById("t_request_timeoff", id);
 
     if (!data) throw new Error("Data tidak ditemukan");
     if (data.status !== STATUS.DRAFT) {
@@ -301,7 +301,7 @@ const submitService = async (id) => {
 };
 
 const approveService = async (id, userEmail) => {
-    const { data } = await findById(id);
+    const { data } = await findById("t_request_timeoff", id);
 
     if (!data) throw new Error("Data tidak ditemukan");
     if (data.status !== STATUS.SUBMITTED) {
@@ -340,7 +340,7 @@ const approveService = async (id, userEmail) => {
 };
 
 const rejectService = async (id, userEmail) => {
-    const { data } = await findById(id);
+    const { data } = await findById("t_request_timeoff", id);
 
     if (!data) throw new Error("Data tidak ditemukan");
     if (data.status !== STATUS.SUBMITTED) {
