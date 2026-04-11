@@ -16,7 +16,17 @@ const findAll = async ({
 }) => {
     let query = db
         .from("master_timeoff_employee")
-        .select("*", { count: "exact" });
+        .select(`
+            *,
+            employee:master_employee (
+                id,
+               name:full_name
+            ),
+            time_off:master_timeoff (
+                id,
+                name
+            )
+        `, { count: "exact" });
 
     // filters
     if (filters.id) {
@@ -81,7 +91,7 @@ const deleteTimeOffEmployee = async (id) => {
         .from("master_timeoff_employee")
         .delete()
         .eq("id", id)
-        .select(); // biar tahu data kehapus
+        .select();
 };
 
 const updateTimeOffEmployee = async (id, payload) => {
