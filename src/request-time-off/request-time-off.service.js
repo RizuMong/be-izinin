@@ -275,7 +275,7 @@ const submitService = async (id) => {
 
     if (data.status !== STATUS.DRAFT) {
         throw new Error("Hanya draft yang bisa disubmit");
-    };
+    }
 
     const { data: updated } = await updateRequest(id, {
         status: STATUS.SUBMITTED
@@ -285,14 +285,15 @@ const submitService = async (id) => {
         a => a.status?.toUpperCase() === "PENDING"
     );
 
-
     if (firstApprover) {
         console.log("Sending email to:", firstApprover.email);
 
-        await sendApprovalEmail(
+        sendApprovalEmail(
             firstApprover.email,
             firstApprover.approver_name
-        );
+        ).catch(err => {
+            console.error("Failed to send email:", err.message);
+        });
     }
 
     return updated;
