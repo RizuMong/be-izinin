@@ -59,6 +59,36 @@ const calculateDays = async (start, end) => {
     return total;
 };
 
+const calculateDaysByPeriod = async (start, end) => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    const { data: holidays } = await getHolidays(start, end);
+    const holidaySet = new Set(holidays.map(h => h.date));
+
+    // Kelompokkan hari kerja valid per tahun
+    const periodMap = {};
+
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split("T")[0];
+        const day = d.getDay(); // 0 = Minggu, 6 = Sabtu
+        const year = d.getFullYear();
+
+        const isWeekend = day === 0 || day === 6;
+        const isHoliday = holidaySet.has(dateStr);
+
+        if (!isWeekend && !isHoliday) {
+            periodMap[year] = (periodMap[year] || 0) + 1;
+        }
+    }
+
+    // Ubah ke array: [{ year, days }]
+    return Object.entries(periodMap).map(([year, days]) => ({
+        year: parseInt(year),
+        days
+    }));
+};
+
 const getAllTimeOffRequestService = async (params, user) => {
     let {
         page = 1,
@@ -157,24 +187,34 @@ const createDraftService = async (body) => {
     await validateFK("master_employee", employee_id, "Employee");
     await validateFK("master_timeoff", timeoff_id, "Time Off");
 
-    const total_days = await calculateDays(start_date, end_date);
+    // Hitung hari per periode (tahun)
+    const periods = await calculateDaysByPeriod(start_date, end_date);
+    const total_days = periods.reduce((sum, p) => sum + p.days, 0);
 
     if (total_days <= 0) {
         throw new Error("Tidak ada hari cuti valid");
     }
 
-    const { data: quota } = await findTimeoffEmployee(
-        employee_id,
-        timeoff_id,
-        start_date
-    );
+    // Validasi & siapkan quota untuk setiap periode
+    const quotaSnapshots = [];
+    for (const period of periods) {
+        const periodDate = `${period.year}-01-01`;
+        const { data: quota } = await findTimeoffEmployee(employee_id, timeoff_id, periodDate);
 
-    if (!quota || quota.remaining_balance < total_days) {
-        throw new Error("Kuota tidak mencukupi");
+        if (!quota) {
+            throw new Error(`Kuota cuti untuk periode ${period.year} tidak ditemukan`);
+        }
+        if (quota.remaining_balance < period.days) {
+            throw new Error(`Kuota tidak mencukupi untuk periode ${period.year}`);
+        }
+
+        quotaSnapshots.push({
+            quota,
+            days: period.days,
+            originalRemaining: quota.remaining_balance,
+            originalUsed: quota.used_quota
+        });
     }
-
-    const originalRemaining = quota.remaining_balance;
-    const originalUsed = quota.used_quota;
 
     // build approval logs dari config
     const approval_logs = TIMEOFF_APPROVERS.map(a => ({
@@ -187,11 +227,16 @@ const createDraftService = async (body) => {
         approved_at: null
     }));
 
+    // Potong quota per periode, rollback semua jika gagal
+    const deducted = [];
     try {
-        await updateTimeOffEmployee(quota.id, {
-            remaining_balance: originalRemaining - total_days,
-            used_quota: originalUsed + total_days
-        });
+        for (const snap of quotaSnapshots) {
+            await updateTimeOffEmployee(snap.quota.id, {
+                remaining_balance: snap.originalRemaining - snap.days,
+                used_quota: snap.originalUsed + snap.days
+            });
+            deducted.push(snap);
+        }
 
         const { data, error } = await createRequest({
             employee_id,
@@ -212,10 +257,13 @@ const createDraftService = async (body) => {
         return data;
 
     } catch (err) {
-        await updateTimeOffEmployee(quota.id, {
-            remaining_balance: originalRemaining,
-            used_quota: originalUsed
-        });
+        // Rollback semua quota yang sudah dipotong
+        for (const snap of deducted) {
+            await updateTimeOffEmployee(snap.quota.id, {
+                remaining_balance: snap.originalRemaining,
+                used_quota: snap.originalUsed
+            });
+        }
 
         throw err;
     }
@@ -244,38 +292,53 @@ const updateDraftService = async (id, body) => {
     const newStart = start_date || data.start_date;
     const newEnd = end_date || data.end_date;
 
-    // hitung ulang hari
-    const newTotalDays = await calculateDays(newStart, newEnd);
+    // === Rollback quota lama (per periode lama) ===
+    const oldPeriods = await calculateDaysByPeriod(data.start_date, data.end_date);
+    for (const period of oldPeriods) {
+        const periodDate = `${period.year}-01-01`;
+        const { data: oldQuota } = await findTimeoffEmployee(data.employee_id, data.timeoff_id, periodDate);
+        if (oldQuota) {
+            await updateTimeOffEmployee(oldQuota.id, {
+                remaining_balance: oldQuota.remaining_balance + period.days,
+                used_quota: Math.max(0, oldQuota.used_quota - period.days)
+            });
+        }
+    }
+
+    // === Hitung hari baru per periode ===
+    const newPeriods = await calculateDaysByPeriod(newStart, newEnd);
+    const newTotalDays = newPeriods.reduce((sum, p) => sum + p.days, 0);
 
     if (newTotalDays <= 0) {
         throw new Error("Tidak ada hari cuti valid");
     }
 
-    // ambil quota
-    const { data: quota } = await findTimeoffEmployee(
-        data.employee_id,
-        data.timeoff_id,
-        newStart
-    );
+    // Validasi & siapkan quota baru per periode
+    const newQuotaSnapshots = [];
+    for (const period of newPeriods) {
+        const periodDate = `${period.year}-01-01`;
+        const { data: quota } = await findTimeoffEmployee(data.employee_id, data.timeoff_id, periodDate);
 
-    // rollback quota lama
-    await updateTimeOffEmployee(quota.id, {
-        remaining_balance: quota.remaining_balance + data.total_days,
-        used_quota: quota.used_quota - data.total_days
-    });
+        if (!quota) {
+            throw new Error(`Kuota cuti untuk periode ${period.year} tidak ditemukan`);
+        }
 
-    // cek cukup tidak setelah rollback
-    const updatedRemaining = quota.remaining_balance + data.total_days;
+        // Ambil nilai terkini setelah rollback
+        const { data: freshQuota } = await findTimeoffEmployee(data.employee_id, data.timeoff_id, periodDate);
+        if (freshQuota.remaining_balance < period.days) {
+            throw new Error(`Kuota tidak mencukupi untuk periode ${period.year}`);
+        }
 
-    if (updatedRemaining < newTotalDays) {
-        throw new Error("Kuota tidak mencukupi");
+        newQuotaSnapshots.push({ quota: freshQuota, days: period.days });
     }
 
-    // potong quota baru
-    await updateTimeOffEmployee(quota.id, {
-        remaining_balance: updatedRemaining - newTotalDays,
-        used_quota: quota.used_quota - data.total_days + newTotalDays
-    });
+    // Potong quota baru per periode
+    for (const snap of newQuotaSnapshots) {
+        await updateTimeOffEmployee(snap.quota.id, {
+            remaining_balance: snap.quota.remaining_balance - snap.days,
+            used_quota: snap.quota.used_quota + snap.days
+        });
+    }
 
     // update request
     const { data: updated } = await updateRequest(id, {
@@ -422,23 +485,21 @@ const rejectService = async (id, userEmail, body) => {
         return a;
     });
 
-    const { data: quota } = await findTimeoffEmployee(
-        data.employee_id,
-        data.timeoff_id,
-        data.start_date
-    );
+    // Kembalikan quota per periode (karena pemotongan sudah dilakukan per periode)
+    const rejectPeriods = await calculateDaysByPeriod(data.start_date, data.end_date);
+    for (const period of rejectPeriods) {
+        const periodDate = `${period.year}-01-01`;
+        const { data: quota } = await findTimeoffEmployee(data.employee_id, data.timeoff_id, periodDate);
 
-    if (!quota) {
-        throw new Error("Kuota cuti tidak ditemukan");
+        if (!quota) {
+            throw new Error(`Kuota cuti untuk periode ${period.year} tidak ditemukan`);
+        }
+
+        await updateTimeOffEmployee(quota.id, {
+            remaining_balance: quota.remaining_balance + period.days,
+            used_quota: Math.max(0, quota.used_quota - period.days)
+        });
     }
-
-    const newRemaining = quota.remaining_balance + data.total_days;
-    const newUsed = Math.max(0, quota.used_quota - data.total_days);
-
-    await updateTimeOffEmployee(quota.id, {
-        remaining_balance: newRemaining,
-        used_quota: newUsed
-    });
 
     // const { data: employee } = await findEmployeeById(parseInt(data.employee_id));
 
