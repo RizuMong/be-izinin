@@ -122,11 +122,28 @@ const findOverlap = async (employee_id, start_date, end_date) => {
 };
 
 const getHolidays = async (start, end) => {
-    return await db
+    // Fetch national holidays (exact date) within range
+    const nationalQuery = db
         .from("master_holiday")
-        .select("date")
+        .select("date, name, is_national_holiday")
+        .eq("is_national_holiday", true)
         .gte("date", start)
         .lte("date", end);
+
+    // Fetch recurring weekly holidays (non-national, no date filter needed)
+    const recurringQuery = db
+        .from("master_holiday")
+        .select("date, name, is_national_holiday")
+        .eq("is_national_holiday", false);
+
+    const [nationalResult, recurringResult] = await Promise.all([nationalQuery, recurringQuery]);
+
+    const data = [
+        ...(nationalResult.data || []),
+        ...(recurringResult.data || [])
+    ];
+
+    return { data, error: nationalResult.error || recurringResult.error };
 };
 
 const findEmployeeById = async (id) => {

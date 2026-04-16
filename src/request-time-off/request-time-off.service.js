@@ -35,6 +35,45 @@ const STATUS = {
     REJECTED: "REJECTED"
 };
 
+// Map day names to JS getDay() index
+const DAY_NAME_TO_INDEX = {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6
+};
+
+/**
+ * Build holiday lookup structures from raw getHolidays() result.
+ * - nationalSet  : Set of date strings ("YYYY-MM-DD") for is_national_holiday=true
+ * - recurringDays: Set of getDay() indices for is_national_holiday=false (weekly recurring)
+ */
+const buildHolidayLookup = (holidays) => {
+    const nationalSet = new Set();
+    const recurringDays = new Set();
+
+    for (const h of holidays) {
+        if (h.is_national_holiday) {
+            // Exact date — store as "YYYY-MM-DD"
+            const dateStr = typeof h.date === "string"
+                ? h.date.split("T")[0]
+                : new Date(h.date).toISOString().split("T")[0];
+            nationalSet.add(dateStr);
+        } else {
+            // Recurring weekly — match by day name
+            const idx = DAY_NAME_TO_INDEX[h.name?.toLowerCase()];
+            if (idx !== undefined) {
+                recurringDays.add(idx);
+            }
+        }
+    }
+
+    return { nationalSet, recurringDays };
+};
+
 const calculateDays = async (start, end) => {
     const startDate = new Date(start);
     const endDate = new Date(end);
@@ -42,16 +81,16 @@ const calculateDays = async (start, end) => {
     let total = 0;
 
     const { data: holidays } = await getHolidays(start, end);
-    const holidaySet = new Set(holidays.map(h => h.date));
+    const { nationalSet, recurringDays } = buildHolidayLookup(holidays);
 
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
         const dateStr = d.toISOString().split("T")[0];
-        const day = d.getDay(); // 0 = Minggu, 6 = Sabtu
+        const dayIndex = d.getDay();
 
-        const isWeekend = day === 0 || day === 6;
-        const isHoliday = holidaySet.has(dateStr);
+        const isNationalHoliday = nationalSet.has(dateStr);
+        const isRecurringHoliday = recurringDays.has(dayIndex);
 
-        if (!isWeekend && !isHoliday) {
+        if (!isNationalHoliday && !isRecurringHoliday) {
             total++;
         }
     }
@@ -64,20 +103,20 @@ const calculateDaysByPeriod = async (start, end) => {
     const endDate = new Date(end);
 
     const { data: holidays } = await getHolidays(start, end);
-    const holidaySet = new Set(holidays.map(h => h.date));
+    const { nationalSet, recurringDays } = buildHolidayLookup(holidays);
 
     // Kelompokkan hari kerja valid per tahun
     const periodMap = {};
 
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
         const dateStr = d.toISOString().split("T")[0];
-        const day = d.getDay(); // 0 = Minggu, 6 = Sabtu
+        const dayIndex = d.getDay();
         const year = d.getFullYear();
 
-        const isWeekend = day === 0 || day === 6;
-        const isHoliday = holidaySet.has(dateStr);
+        const isNationalHoliday = nationalSet.has(dateStr);
+        const isRecurringHoliday = recurringDays.has(dayIndex);
 
-        if (!isWeekend && !isHoliday) {
+        if (!isNationalHoliday && !isRecurringHoliday) {
             periodMap[year] = (periodMap[year] || 0) + 1;
         }
     }
