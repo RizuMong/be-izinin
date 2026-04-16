@@ -15,6 +15,8 @@ const {
 } = require("../time-off-employee/time-off-employee.repository");
 
 const { sendApprovalEmail, sendRejectEmail } = require("../utils/email/notification.service");
+const { safeJson } = require("../utils/json");
+
 
 const { TIMEOFF_APPROVERS } = require("./timeoff-approver.config");
 
@@ -26,6 +28,28 @@ const validateFK = async (table, id, label) => {
         err.status = 404;
         throw err;
     }
+};
+
+const buildApprovalLogs = () => {
+    if (!Array.isArray(TIMEOFF_APPROVERS)) {
+        throw new Error("TIMEOFF_APPROVERS config invalid");
+    }
+
+    return TIMEOFF_APPROVERS.map((a, index) => {
+        if (!a.email || !a.employee_id) {
+            throw new Error(`Invalid approver config at index ${index}`);
+        }
+
+        return {
+            employee_id: a.employee_id,
+            approver_name: a.approver_name || null,
+            email: a.email,
+            role: a.role || null,
+            status: "PENDING",
+            comment: null,
+            approved_at: null
+        };
+    });
 };
 
 const STATUS = {
@@ -72,30 +96,6 @@ const buildHolidayLookup = (holidays) => {
     }
 
     return { nationalSet, recurringDays };
-};
-
-const calculateDays = async (start, end) => {
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-
-    let total = 0;
-
-    const { data: holidays } = await getHolidays(start, end);
-    const { nationalSet, recurringDays } = buildHolidayLookup(holidays);
-
-    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-        const dateStr = d.toISOString().split("T")[0];
-        const dayIndex = d.getDay();
-
-        const isNationalHoliday = nationalSet.has(dateStr);
-        const isRecurringHoliday = recurringDays.has(dayIndex);
-
-        if (!isNationalHoliday && !isRecurringHoliday) {
-            total++;
-        }
-    }
-
-    return total;
 };
 
 const calculateDaysByPeriod = async (start, end) => {
@@ -163,24 +163,13 @@ const getAllTimeOffRequestService = async (params, user) => {
     if (timeoff_id) filters.timeoff_id = timeoff_id;
 
     if (status) {
-        filters.status = status.split(",").map(s => s.trim().toUpperCase());
+        filters.status = status
+            .split(",")
+            .map(s => s.trim().toUpperCase());
     }
 
     if (start_date) filters.start_date = start_date;
     if (end_date) filters.end_date = end_date;
-
-    const isApprover = TIMEOFF_APPROVERS.some(a => a.email === user?.email);
-
-    if (isApprover) {
-        // Approver: hanya lihat request dimana statusnya PENDING untuk mereka
-        filters.active_approver_email = user.email;
-    } else if (user?.email) {
-        // Employee biasa: cari employee_id berdasarkan email login
-        const { data: employee } = await findEmployeeByEmail(user.email);
-        if (employee) {
-            filters.employee_id = employee.id;
-        }
-    }
 
     const { data, error, count } = await findAll({
         from,
