@@ -46,8 +46,12 @@ const calculateDays = async (start, end) => {
 
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
         const dateStr = d.toISOString().split("T")[0];
+        const day = d.getDay(); // 0 = Minggu, 6 = Sabtu
 
-        if (!holidaySet.has(dateStr)) {
+        const isWeekend = day === 0 || day === 6;
+        const isHoliday = holidaySet.has(dateStr);
+
+        if (!isWeekend && !isHoliday) {
             total++;
         }
     }
