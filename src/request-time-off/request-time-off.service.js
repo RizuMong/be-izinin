@@ -6,7 +6,8 @@ const {
     findById,
     findTimeoffEmployee,
     getHolidays,
-    findEmployeeById
+    findEmployeeById,
+    findEmployeeByEmail
 } = require("./request-time-off.repository");
 
 const {
@@ -54,7 +55,7 @@ const calculateDays = async (start, end) => {
     return total;
 };
 
-const getAllTimeOffRequestService = async (params) => {
+const getAllTimeOffRequestService = async (params, user) => {
     let {
         page = 1,
         limit = 10,
@@ -94,6 +95,19 @@ const getAllTimeOffRequestService = async (params) => {
 
     if (start_date) filters.start_date = start_date;
     if (end_date) filters.end_date = end_date;
+
+    const isApprover = TIMEOFF_APPROVERS.some(a => a.email === user?.email);
+
+    if (isApprover) {
+        // Approver: hanya lihat request dimana statusnya PENDING untuk mereka
+        filters.active_approver_email = user.email;
+    } else if (user?.email) {
+        // Employee biasa: cari employee_id berdasarkan email login
+        const { data: employee } = await findEmployeeByEmail(user.email);
+        if (employee) {
+            filters.employee_id = employee.id;
+        }
+    }
 
     const { data, error, count } = await findAll({
         from,

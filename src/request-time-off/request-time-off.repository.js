@@ -54,6 +54,13 @@ const findAll = async ({
         query = query.lte("end_date", filters.end_date);
     }
 
+    // Filter berdasarkan approver aktif: cari request dimana
+    if (filters.active_approver_email) {
+        query = query.contains("approval_logs", [
+            { email: filters.active_approver_email, status: "PENDING" }
+        ]);
+    }
+
     // sorting
     query = query.order(sortBy, { ascending: order === "asc" });
 
@@ -130,6 +137,14 @@ const findEmployeeById = async (id) => {
         .select("*", { count: "exact" }).single();
 };
 
+const findEmployeeByEmail = async (email) => {
+    return await db
+        .from("master_employee")
+        .select("id, full_name, email")
+        .eq("email", email)
+        .maybeSingle();
+};
+
 module.exports = {
     findAll,
     createRequest,
@@ -138,5 +153,6 @@ module.exports = {
     findOverlap,
     getHolidays,
     findTimeoffEmployee,
-    findEmployeeById
+    findEmployeeById,
+    findEmployeeByEmail
 };

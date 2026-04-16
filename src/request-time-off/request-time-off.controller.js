@@ -17,7 +17,7 @@ const {
 // list request
 router.get("/", authMiddleware, async (req, res) => {
     try {
-        const result = await getAllTimeOffRequestService(req.query);
+        const result = await getAllTimeOffRequestService(req.query, req.user);
 
         return res.status(200).json({
             data: result.data,
