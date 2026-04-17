@@ -383,7 +383,7 @@ const submitService = async (id, userEmail) => {
         throw new Error("Hanya draft yang bisa disubmit");
     }
 
-    await validateDateConflict(data.employee_id, data.start_date, data.end_date);
+    // await validateDateConflict(data.employee_id, data.start_date, data.end_date);
 
     const { data: updated } = await updateRequest(id, {
         status: STATUS.SUBMITTED,

@@ -40,6 +40,10 @@ app.use("/adjustment-time-off/employee", adjustmentTimeOffController);
 const requestTimeOffController = require("./request-time-off/request-time-off.controller");
 app.use("/time-off-request", requestTimeOffController);
 
+// request time off approval
+const approvalController = require("./approval-time-off/approval.controller");
+app.use("/time-off-approval", approvalController);
+
 // user
 const userController = require("./user/user.controller");
 app.use("/user", userController);
