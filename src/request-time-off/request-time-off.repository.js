@@ -53,6 +53,10 @@ const findAll = async ({
         query = query.lte("end_date", filters.end_date);
     }
 
+    if (filters.created_by_email) {
+        query = query.eq("created_by_email", filters.created_by_email);
+    }
+
     if (filters.active_approver_email) {
         query = query.contains("approval_logs", [
             { email: filters.active_approver_email, status: "PENDING" }

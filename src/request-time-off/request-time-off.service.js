@@ -143,6 +143,10 @@ const getAllTimeOffRequestService = async (params, user) => {
 
     const filters = {};
 
+    if (user && user.email) {
+        filters.created_by_email = user.email;
+    }
+
     if (employee_id) filters.employee_id = employee_id;
     if (timeoff_id) filters.timeoff_id = timeoff_id;
 
