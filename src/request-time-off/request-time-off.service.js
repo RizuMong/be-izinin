@@ -7,7 +7,6 @@ const {
     findTimeoffEmployee,
     getHolidays,
     findEmployeeById,
-    findEmployeeById,
     findEmployeeByEmail,
     findOverlap
 } = require("./request-time-off.repository");
