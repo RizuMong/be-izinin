@@ -44,11 +44,19 @@ router.post("/", authMiddleware, async (req, res) => {
 
         return res.status(200).json({
             data,
-            message: "Draft berhasil dibuat",
+            message: "Success create draft",
             error: false
         });
 
     } catch (err) {
+        if (err.code === "TIMEOFF_DATE_CONFLICT") {
+            return res.status(400).json({
+                success: false,
+                message: err.message,
+                code: err.code,
+                data: err.conflictData
+            });
+        }
         return res.status(400).json({
             data: null,
             message: err.message,
@@ -66,11 +74,19 @@ router.put("/draft/:id", authMiddleware, async (req, res) => {
 
         return res.status(200).json({
             data,
-            message: "Draft berhasil diupdate",
+            message: "Success update draft",
             error: false
         });
 
     } catch (err) {
+        if (err.code === "TIMEOFF_DATE_CONFLICT") {
+            return res.status(400).json({
+                success: false,
+                message: err.message,
+                code: err.code,
+                data: err.conflictData
+            });
+        }
         return res.status(400).json({
             data: null,
             message: err.message,
@@ -86,7 +102,35 @@ router.put("/submit/:id", authMiddleware, async (req, res) => {
 
         return res.status(200).json({
             data: {},
-            message: "Berhasil submit",
+            message: "Success submit request",
+            error: false
+        });
+
+    } catch (err) {
+        if (err.code === "TIMEOFF_DATE_CONFLICT") {
+            return res.status(400).json({
+                success: false,
+                message: err.message,
+                code: err.code,
+                data: err.conflictData
+            });
+        }
+        return res.status(400).json({
+            data: null,
+            message: err.message,
+            error: true
+        });
+    }
+});
+
+// cancel
+router.put("/cancel/:id", authMiddleware, async (req, res) => {
+    try {
+        const data = await cancelService(req.params.id);
+
+        return res.status(200).json({
+            data: {},
+            message: "Success cancel request",
             error: false
         });
 
@@ -108,7 +152,7 @@ router.put("/approve/:id", authMiddleware, async (req, res) => {
 
         return res.status(200).json({
             data: data.data,
-            message: "Disetujui",
+            message: "Success approve request",
             error: false
         });
 
@@ -130,7 +174,7 @@ router.put("/reject/:id", authMiddleware, async (req, res) => {
 
         return res.status(200).json({
             data: data.data,
-            message: "Ditolak",
+            message: "Success reject request",
             error: false
         });
 

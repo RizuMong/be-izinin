@@ -116,9 +116,12 @@ const findById = async (table, id) => {
 const findOverlap = async (employee_id, start_date, end_date) => {
     return await db
         .from("t_request_timeoff")
-        .select("*")
+        .select("start_date, end_date")
         .eq("employee_id", employee_id)
-        .or(`start_date.lte.${end_date},end_date.gte.${start_date}`);
+        .in("status", ["PENDING", "SUBMITTED", "APPROVED"])
+        .lte("start_date", end_date)
+        .gte("end_date", start_date)
+        .limit(1);
 };
 
 const getHolidays = async (start, end) => {

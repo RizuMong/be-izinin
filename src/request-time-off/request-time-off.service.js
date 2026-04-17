@@ -7,7 +7,9 @@ const {
     findTimeoffEmployee,
     getHolidays,
     findEmployeeById,
-    findEmployeeByEmail
+    findEmployeeById,
+    findEmployeeByEmail,
+    findOverlap
 } = require("./request-time-off.repository");
 
 const {
@@ -15,7 +17,6 @@ const {
 } = require("../time-off-employee/time-off-employee.repository");
 
 const { sendApprovalEmail, sendRejectEmail } = require("../utils/email/notification.service");
-const { safeJson } = require("../utils/json");
 
 
 const { TIMEOFF_APPROVERS } = require("./timeoff-approver.config");
@@ -30,36 +31,27 @@ const validateFK = async (table, id, label) => {
     }
 };
 
-const buildApprovalLogs = () => {
-    if (!Array.isArray(TIMEOFF_APPROVERS)) {
-        throw new Error("TIMEOFF_APPROVERS config invalid");
-    }
-
-    return TIMEOFF_APPROVERS.map((a, index) => {
-        if (!a.email || !a.employee_id) {
-            throw new Error(`Invalid approver config at index ${index}`);
-        }
-
-        return {
-            employee_id: a.employee_id,
-            approver_name: a.approver_name || null,
-            email: a.email,
-            role: a.role || null,
-            status: "PENDING",
-            comment: null,
-            approved_at: null
+const validateDateConflict = async (employee_id, start_date, end_date) => {
+    const { data: overlap } = await findOverlap(employee_id, start_date, end_date);
+    if (overlap && overlap.length > 0) {
+        const err = new Error(`A request already exists for ${overlap[0].start_date} - ${overlap[0].end_date}. Please choose different dates.`);
+        err.code = "TIMEOFF_DATE_CONFLICT";
+        err.conflictData = {
+            conflict_start_date: overlap[0].start_date,
+            conflict_end_date: overlap[0].end_date
         };
-    });
+        throw err;
+    }
 };
 
 const STATUS = {
     DRAFT: "DRAFT",
+    PENDING: "PENDING",
     SUBMITTED: "SUBMITTED",
     APPROVED: "APPROVED",
     REJECTED: "REJECTED"
 };
 
-// Map day names to JS getDay() index
 const DAY_NAME_TO_INDEX = {
     sunday: 0,
     monday: 1,
@@ -70,11 +62,6 @@ const DAY_NAME_TO_INDEX = {
     saturday: 6
 };
 
-/**
- * Build holiday lookup structures from raw getHolidays() result.
- * - nationalSet  : Set of date strings ("YYYY-MM-DD") for is_national_holiday=true
- * - recurringDays: Set of getDay() indices for is_national_holiday=false (weekly recurring)
- */
 const buildHolidayLookup = (holidays) => {
     const nationalSet = new Set();
     const recurringDays = new Set();
@@ -211,6 +198,8 @@ const createDraftService = async (body) => {
         throw new Error("Invalid date range");
     };
 
+    await validateDateConflict(employee_id, start_date, end_date);
+
     // FK validation
     await validateFK("master_employee", employee_id, "Employee");
     await validateFK("master_timeoff", timeoff_id, "Time Off");
@@ -250,7 +239,7 @@ const createDraftService = async (body) => {
         approver_name: a.approver_name,
         email: a.email,
         role: a.role,
-        status: "PENDING",
+        status: STATUS.PENDING,
         comment: null,
         approved_at: null
     }));
@@ -320,6 +309,8 @@ const updateDraftService = async (id, body) => {
     const newStart = start_date || data.start_date;
     const newEnd = end_date || data.end_date;
 
+    await validateDateConflict(data.employee_id, newStart, newEnd);
+
     // === Rollback quota lama (per periode lama) ===
     const oldPeriods = await calculateDaysByPeriod(data.start_date, data.end_date);
     for (const period of oldPeriods) {
@@ -388,6 +379,8 @@ const submitService = async (id) => {
         throw new Error("Hanya draft yang bisa disubmit");
     }
 
+    await validateDateConflict(data.employee_id, data.start_date, data.end_date);
+
     const { data: updated } = await updateRequest(id, {
         status: STATUS.SUBMITTED
     });
@@ -405,6 +398,36 @@ const submitService = async (id) => {
         ).catch(err => {
             console.error("Failed to send email:", err.message);
         });
+    }
+
+    return updated;
+};
+
+const cancelService = async (id) => {
+    const { data } = await findById("t_request_timeoff", parseInt(id));
+
+    if (!data) throw new Error("Data tidak ditemukan");
+
+    if (data.status !== STATUS.DRAFT) {
+        throw new Error("Hanya draft yang bisa dicancel");
+    }
+
+    const { data: updated } = await updateRequest(id, {
+        status: STATUS.CANCELLED
+    });
+
+    // Rollback quota
+    const periods = await calculateDaysByPeriod(data.start_date, data.end_date);
+    for (const period of periods) {
+        const periodDate = `${period.year}-01-01`;
+        const { data: quota } = await findTimeoffEmployee(data.employee_id, data.timeoff_id, periodDate);
+
+        if (quota) {
+            await updateTimeOffEmployee(quota.id, {
+                remaining_balance: quota.remaining_balance + period.days,
+                used_quota: quota.used_quota - period.days
+            });
+        }
     }
 
     return updated;
@@ -555,6 +578,7 @@ module.exports = {
     createDraftService,
     updateDraftService,
     submitService,
+    cancelService,
     approveService,
     rejectService
 };
