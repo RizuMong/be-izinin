@@ -91,7 +91,7 @@ const calculateDaysByPeriod = async (start, end) => {
 
     const { data: holidays } = await getHolidays(start, end);
     const { nationalSet, recurringDays } = buildHolidayLookup(holidays);
-    
+
     const periodMap = {};
 
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
@@ -380,8 +380,8 @@ const submitService = async (id, userEmail) => {
 
     if (!data) throw new Error("Data tidak ditemukan");
 
-    if (data.status !== STATUS.DRAFT) {
-        throw new Error("Hanya draft yang bisa disubmit");
+    if (![STATUS.DRAFT, STATUS.SUBMITTED].includes(data.status)) {
+        throw new Error("Only draft or submitted requests can be processed");
     }
 
     // await validateDateConflict(data.employee_id, data.start_date, data.end_date);
@@ -414,8 +414,19 @@ const cancelService = async (id, userEmail) => {
 
     if (!data) throw new Error("Data tidak ditemukan");
 
-    if (data.status !== STATUS.DRAFT) {
-        throw new Error("Hanya draft yang bisa dicancel");
+    if (data.created_by_email !== userEmail) {
+        throw new Error("Anda tidak memiliki akses untuk membatalkan request ini");
+    }
+
+    const allowedStatuses = [STATUS.SUBMITTED, STATUS.PENDING];
+    const rejectedStatuses = [STATUS.APPROVED, STATUS.REJECTED, STATUS.CANCELLED];
+
+    if (rejectedStatuses.includes(data.status)) {
+        throw new Error("Request yang sudah diproses tidak dapat dibatalkan");
+    }
+
+    if (!allowedStatuses.includes(data.status)) {
+        throw new Error("Status request tidak valid untuk dibatalkan");
     }
 
     const { data: updated } = await updateRequest(id, {
@@ -431,9 +442,8 @@ const cancelService = async (id, userEmail) => {
 
         if (quota) {
             await updateTimeOffEmployee(quota.id, {
-                status: STATUS.CANCELLED,
                 remaining_balance: quota.remaining_balance + period.days,
-                used_quota: quota.used_quota - period.days
+                used_quota: Math.max(0, quota.used_quota - period.days)
             });
         }
     }
@@ -508,8 +518,6 @@ const rejectService = async (id, userEmail, body) => {
     const { reason } = body;
 
     const { data } = await findById("t_request_timeoff", parseInt(id));
-    console.log(data);
-    
 
     if (!data) throw new Error("Data tidak ditemukan");
 
@@ -545,7 +553,6 @@ const rejectService = async (id, userEmail, body) => {
         return a;
     });
 
-    // Kembalikan quota per periode (karena pemotongan sudah dilakukan per periode)
     const rejectPeriods = await calculateDaysByPeriod(data.start_date, data.end_date);
     for (const period of rejectPeriods) {
         const periodDate = `${period.year}-01-01`;
