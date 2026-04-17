@@ -1,5 +1,4 @@
 // request-time-off.repository
-
 const db = require("../db");
 
 const safeNumber = (val) => {
@@ -54,7 +53,6 @@ const findAll = async ({
         query = query.lte("end_date", filters.end_date);
     }
 
-    // Filter berdasarkan approver aktif: cari request dimana
     if (filters.active_approver_email) {
         query = query.contains("approval_logs", [
             { email: filters.active_approver_email, status: "PENDING" }
@@ -118,14 +116,13 @@ const findOverlap = async (employee_id, start_date, end_date) => {
         .from("t_request_timeoff")
         .select("start_date, end_date")
         .eq("employee_id", employee_id)
-        .in("status", ["PENDING", "SUBMITTED", "APPROVED"])
+        .in("status", ["DRAFT", "PENDING", "SUBMITTED", "APPROVED"])
         .lte("start_date", end_date)
         .gte("end_date", start_date)
         .limit(1);
 };
 
 const getHolidays = async (start, end) => {
-    // Fetch national holidays (exact date) within range
     const nationalQuery = db
         .from("master_holiday")
         .select("date, name, is_national_holiday")
@@ -133,7 +130,6 @@ const getHolidays = async (start, end) => {
         .gte("date", start)
         .lte("date", end);
 
-    // Fetch recurring weekly holidays (non-national, no date filter needed)
     const recurringQuery = db
         .from("master_holiday")
         .select("date, name, is_national_holiday")

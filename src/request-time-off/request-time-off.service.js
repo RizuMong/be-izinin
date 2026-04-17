@@ -90,8 +90,7 @@ const calculateDaysByPeriod = async (start, end) => {
 
     const { data: holidays } = await getHolidays(start, end);
     const { nationalSet, recurringDays } = buildHolidayLookup(holidays);
-
-    // Kelompokkan hari kerja valid per tahun
+    
     const periodMap = {};
 
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
@@ -107,7 +106,6 @@ const calculateDaysByPeriod = async (start, end) => {
         }
     }
 
-    // Ubah ke array: [{ year, days }]
     return Object.entries(periodMap).map(([year, days]) => ({
         year: parseInt(year),
         days
@@ -180,7 +178,7 @@ const getAllTimeOffRequestService = async (params, user) => {
     };
 };
 
-const createDraftService = async (body) => {
+const createDraftService = async (body, userEmail) => {
     const {
         employee_id,
         timeoff_id,
@@ -262,7 +260,9 @@ const createDraftService = async (body) => {
             total_days,
             reason,
             status: STATUS.DRAFT,
-            approval_logs
+            approval_logs,
+            created_by_email: userEmail,
+            updated_by_email: userEmail
         });
 
         if (error) throw new Error(error.message);
@@ -285,7 +285,7 @@ const createDraftService = async (body) => {
     }
 };
 
-const updateDraftService = async (id, body) => {
+const updateDraftService = async (id, body, userEmail) => {
     const { start_date, end_date, reason } = body;
 
     const { data } = await findById("t_request_timeoff", id);
@@ -363,13 +363,14 @@ const updateDraftService = async (id, body) => {
         start_date: newStart,
         end_date: newEnd,
         total_days: newTotalDays,
-        reason: reason ?? data.reason
+        reason: reason ?? data.reason,
+        updated_by_email: userEmail
     });
 
     return updated;
 };
 
-const submitService = async (id) => {
+const submitService = async (id, userEmail) => {
     const { data } = await findById("t_request_timeoff", parseInt(id));
 
     if (!data) throw new Error("Data tidak ditemukan");
@@ -381,7 +382,8 @@ const submitService = async (id) => {
     await validateDateConflict(data.employee_id, data.start_date, data.end_date);
 
     const { data: updated } = await updateRequest(id, {
-        status: STATUS.SUBMITTED
+        status: STATUS.SUBMITTED,
+        updated_by_email: userEmail
     });
 
     const firstApprover = data.approval_logs.find(
@@ -402,7 +404,7 @@ const submitService = async (id) => {
     return updated;
 };
 
-const cancelService = async (id) => {
+const cancelService = async (id, userEmail) => {
     const { data } = await findById("t_request_timeoff", parseInt(id));
 
     if (!data) throw new Error("Data tidak ditemukan");
@@ -412,7 +414,8 @@ const cancelService = async (id) => {
     }
 
     const { data: updated } = await updateRequest(id, {
-        status: STATUS.CANCELLED
+        status: STATUS.CANCELLED,
+        updated_by_email: userEmail
     });
 
     // Rollback quota
@@ -490,7 +493,8 @@ const approveService = async (id, userEmail, body) => {
 
     return await updateRequest(id, {
         status: allApproved ? STATUS.APPROVED : STATUS.SUBMITTED,
-        approval_logs: updatedLogs
+        approval_logs: updatedLogs,
+        updated_by_email: userEmail
     });
 };
 
@@ -568,7 +572,8 @@ const rejectService = async (id, userEmail, body) => {
 
     return await updateRequest(id, {
         status: STATUS.REJECTED,
-        approval_logs: updatedLogs
+        approval_logs: updatedLogs,
+        updated_by_email: userEmail
     });
 };
 

@@ -10,6 +10,7 @@ const {
     createDraftService,
     updateDraftService,
     submitService,
+    cancelService, 
     approveService,
     rejectService
 } = require("./request-time-off.service");
@@ -18,7 +19,6 @@ const {
 router.get("/", authMiddleware, async (req, res) => {
     try {
         var user = req.user;
-        console.log(user);
         const result = await getAllTimeOffRequestService(req.query, user);
 
         return res.status(200).json({
@@ -40,7 +40,8 @@ router.get("/", authMiddleware, async (req, res) => {
 // create draft
 router.post("/", authMiddleware, async (req, res) => {
     try {
-        const data = await createDraftService(req.body);
+        const user = req.user;
+        const data = await createDraftService(req.body, user.email);
 
         return res.status(200).json({
             data,
@@ -69,8 +70,9 @@ router.post("/", authMiddleware, async (req, res) => {
 router.put("/draft/:id", authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
+        const user = req.user;
 
-        const data = await updateDraftService(id, req.body);
+        const data = await updateDraftService(id, req.body, user.email);
 
         return res.status(200).json({
             data,
@@ -98,7 +100,7 @@ router.put("/draft/:id", authMiddleware, async (req, res) => {
 // submit
 router.put("/submit/:id", authMiddleware, async (req, res) => {
     try {
-        const data = await submitService(req.params.id);
+        const data = await submitService(req.params.id, req.user.email);
 
         return res.status(200).json({
             data: {},
@@ -126,7 +128,7 @@ router.put("/submit/:id", authMiddleware, async (req, res) => {
 // cancel
 router.put("/cancel/:id", authMiddleware, async (req, res) => {
     try {
-        const data = await cancelService(req.params.id);
+        const data = await cancelService(req.params.id, req.user.email);
 
         return res.status(200).json({
             data: {},
