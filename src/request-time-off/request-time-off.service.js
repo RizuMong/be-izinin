@@ -48,7 +48,8 @@ const STATUS = {
     PENDING: "PENDING",
     SUBMITTED: "SUBMITTED",
     APPROVED: "APPROVED",
-    REJECTED: "REJECTED"
+    REJECTED: "REJECTED",
+    CANCELLED: "CANCELLED"
 };
 
 const DAY_NAME_TO_INDEX = {
@@ -430,6 +431,7 @@ const cancelService = async (id, userEmail) => {
 
         if (quota) {
             await updateTimeOffEmployee(quota.id, {
+                status: STATUS.CANCELLED,
                 remaining_balance: quota.remaining_balance + period.days,
                 used_quota: quota.used_quota - period.days
             });
