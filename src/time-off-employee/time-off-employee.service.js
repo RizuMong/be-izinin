@@ -136,14 +136,6 @@ const createTimeOffEmployeeService = async (body) => {
         period
     );
 
-    console.log({
-        employee_id: employee_id,
-        timeoff_id: timeoff_id,
-        period: period,
-        existing: existing
-    });
-    
-
     if (existing) {
         throw new Error("Data time off employee untuk tahun ini sudah ada");
     }

@@ -10,10 +10,6 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-console.log(process.env.EMAIL_USER);
-console.log(process.env.EMAIL_PASS);
-
-
 const sendEmail = async ({ to, subject, html, text }) => {
     try {
         const info = await transporter.sendMail({
@@ -26,7 +22,6 @@ const sendEmail = async ({ to, subject, html, text }) => {
 
         return info;
     } catch (err) {
-        console.error("Email error:", err.message);
         throw new Error("Gagal mengirim email");
     }
 };
