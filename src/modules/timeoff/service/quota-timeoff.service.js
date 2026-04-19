@@ -86,7 +86,7 @@ const updateQuotaService = async (id, body) => {
     const { data, error } = await updateQuota(id, body);
 
     if (error) throw new Error(error.message);
-    if (!data || data.length === 0) throw new Error("Data tidak ditemukan");
+    if (!data || data.length === 0) throw new Error("Data not found");
 
     return data;
 };
@@ -95,7 +95,7 @@ const deleteQuotaService = async (id) => {
     const { data, error } = await deleteQuota(id);
 
     if (error) throw new Error(error.message);
-    if (!data || data.length === 0) throw new Error("Data tidak ditemukan");
+    if (!data || data.length === 0) throw new Error("Data not found");
 
     return data;
 };

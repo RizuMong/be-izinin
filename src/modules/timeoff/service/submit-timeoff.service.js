@@ -66,7 +66,7 @@ const createDraftService = async (body, userEmail) => {
     const total_days = periods.reduce((sum, p) => sum + p.days, 0);
 
     if (total_days <= 0) {
-        throw new Error("Tidak ada hari cuti valid");
+        throw new Error("No valid leave days found");
     }
 
     // Validasi & siapkan quota untuk setiap periode
@@ -76,10 +76,10 @@ const createDraftService = async (body, userEmail) => {
         const { data: quota } = await findByEmployeeAndTimeoff(employee_id, timeoff_id, periodDate);
 
         if (!quota) {
-            throw new Error(`Kuota cuti untuk periode ${period.year} tidak ditemukan`);
+            throw new Error(`Leave quota for period ${period.year} not found`);
         }
         if (quota.remaining_balance < period.days) {
-            throw new Error(`Kuota tidak mencukupi untuk periode ${period.year}`);
+            throw new Error(`Insufficient quota for period ${period.year}`);
         }
 
         quotaSnapshots.push({
@@ -127,7 +127,7 @@ const createDraftService = async (body, userEmail) => {
 
         if (error) throw new Error(error.message);
         if (!data || data.length === 0) {
-            throw new Error("Gagal membuat draft");
+            throw new Error("Failed to create draft");
         }
 
         return data;
@@ -150,11 +150,11 @@ const updateDraftService = async (id, body, userEmail) => {
     const { data } = await findRequestById(id);
 
     if (!data) {
-        throw new Error("Data tidak ditemukan");
+        throw new Error("Data not found");
     }
 
     if (data.status !== STATUS.DRAFT) {
-        throw new Error("Hanya draft yang bisa diupdate");
+        throw new Error("Only drafts can be updated");
     }
 
     // validasi tanggal
@@ -187,7 +187,7 @@ const updateDraftService = async (id, body, userEmail) => {
     const newTotalDays = newPeriods.reduce((sum, p) => sum + p.days, 0);
 
     if (newTotalDays <= 0) {
-        throw new Error("Tidak ada hari cuti valid");
+        throw new Error("No valid leave days found");
     }
 
     // Validasi & siapkan quota baru
@@ -197,11 +197,11 @@ const updateDraftService = async (id, body, userEmail) => {
         const { data: freshQuota } = await findByEmployeeAndTimeoff(data.employee_id, data.timeoff_id, periodDate);
 
         if (!freshQuota) {
-            throw new Error(`Kuota cuti untuk periode ${period.year} tidak ditemukan`);
+            throw new Error(`Leave quota for period ${period.year} not found`);
         }
 
         if (freshQuota.remaining_balance < period.days) {
-            throw new Error(`Kuota tidak mencukupi untuk periode ${period.year}`);
+            throw new Error(`Insufficient quota for period ${period.year}`);
         }
 
         newQuotaSnapshots.push({ quota: freshQuota, days: period.days });
@@ -230,7 +230,7 @@ const updateDraftService = async (id, body, userEmail) => {
 const submitService = async (id, userEmail) => {
     const { data } = await findRequestById(parseInt(id));
 
-    if (!data) throw new Error("Data tidak ditemukan");
+    if (!data) throw new Error("Data not found");
 
     if (![STATUS.DRAFT, STATUS.SUBMITTED].includes(data.status)) {
         throw new Error("Only draft or submitted requests can be processed");

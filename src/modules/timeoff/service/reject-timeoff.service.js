@@ -7,16 +7,16 @@ const rejectService = async (id, userEmail, body) => {
 
     const { data } = await findRequestById(parseInt(id));
 
-    if (!data) throw new Error("Data tidak ditemukan");
+    if (!data) throw new Error("Data not found");
 
     if (data.status !== STATUS.SUBMITTED) {
-        throw new Error("Status tidak valid");
+        throw new Error("Invalid status");
     }
 
     const approver = data.approval_logs.find(a => a.email === userEmail);
 
     if (!approver) {
-        throw new Error("Anda tidak memiliki akses untuk reject");
+        throw new Error("You do not have access to reject");
     }
 
     if (approver.status !== STATUS.PENDING) {

@@ -103,7 +103,7 @@ const deleteTimeOffService = async (id) => {
     }
 
     if (!data || data.length === 0) {
-        const err = new Error("Data tidak ditemukan");
+        const err = new Error("Data not found");
         err.status = 404;
         throw err;
     }
@@ -156,7 +156,7 @@ const updateTimeOffService = async (id, body) => {
     }
 
     if (!data || data.length === 0) {
-        const err = new Error("Data tidak ditemukan");
+        const err = new Error("Data not found");
         err.status = 404;
         throw err;
     }

@@ -33,7 +33,7 @@ router.post("/", authMiddleware, async (req, res) => {
         const data = await createAdjustmentTimeOffService(req.body);
         return res.status(200).json({
             data,
-            message: "Data berhasil dibuat",
+            message: "Data created successfully",
             error: false
         });
     } catch (err) {
@@ -51,7 +51,7 @@ router.delete("/:id", authMiddleware, async (req, res) => {
         const data = await deleteAdjustmentTimeOffService(req.params.id);
         return res.status(200).json({
             data,
-            message: "Data berhasil dihapus",
+            message: "Data deleted successfully",
             error: false
         });
     } catch (err) {
@@ -69,7 +69,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
         const data = await updateAdjustmentTimeOffService(req.params.id, req.body);
         return res.status(200).json({
             data,
-            message: "Data berhasil diupdate",
+            message: "Data updated successfully",
             error: false
         });
     } catch (err) {

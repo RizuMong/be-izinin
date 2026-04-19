@@ -5,16 +5,16 @@ const { calculateDaysByPeriod } = require("./timeoff-helper.service");
 const cancelService = async (id, userEmail) => {
     const { data } = await findRequestById(parseInt(id));
 
-    if (!data) throw new Error("Data tidak ditemukan");
+    if (!data) throw new Error("Data not found");
 
     if (data.created_by_email !== userEmail) {
-        throw new Error("Anda tidak memiliki akses untuk membatalkan request ini");
+        throw new Error("You do not have access to cancel this request");
     }
 
     const rejectedStatuses = [STATUS.APPROVED, STATUS.REJECTED, STATUS.CANCELLED];
 
     if (rejectedStatuses.includes(data.status)) {
-        throw new Error("Request yang sudah diproses tidak dapat dibatalkan");
+        throw new Error("Processed requests cannot be cancelled");
     }
 
     const { data: updated } = await updateRequest(id, {

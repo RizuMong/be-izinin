@@ -1,4 +1,5 @@
 const { findAll, findById, createHoliday, updateHoliday, deleteHoliday } = require("../repository/holiday.repository");
+const { validateDuplicate } = require("../../../../shared/utils/validator");
 
 const getAHoliday = async (params) => {
     let {
@@ -88,6 +89,21 @@ const createHolidayService = async (body) => {
         throw new Error("Invalid date format (YYYY-MM-DD expected)");
     }
 
+    // Validation duplicate
+    await validateDuplicate({
+        table: "master_holiday",
+        field: "name",
+        value: name,
+        label: "Holiday Name"
+    });
+
+    await validateDuplicate({
+        table: "master_holiday",
+        field: "date",
+        value: date,
+        label: "Holiday Date"
+    });
+
     const { data, error } = await createHoliday({
         name,
         is_national_holiday,
@@ -113,7 +129,7 @@ const deleteHolidayService = async (id) => {
     }
 
     if (!data || data.length === 0) {
-        const err = new Error("Data tidak ditemukan");
+        const err = new Error("Data not found");
         err.status = 404;
         throw err;
     }
@@ -157,6 +173,27 @@ const updateHolidayService = async (id, body) => {
             throw new Error("Invalid date format (YYYY-MM-DD expected)");
         }
         payload.date = date;
+    }
+
+    // Validation duplicate
+    if (name) {
+        await validateDuplicate({
+            table: "master_holiday",
+            field: "name",
+            value: name,
+            label: "Holiday Name",
+            excludeId: parsedId
+        });
+    }
+
+    if (date) {
+        await validateDuplicate({
+            table: "master_holiday",
+            field: "date",
+            value: date,
+            label: "Holiday Date",
+            excludeId: parsedId
+        });
     }
 
     if (Object.keys(payload).length === 0) {

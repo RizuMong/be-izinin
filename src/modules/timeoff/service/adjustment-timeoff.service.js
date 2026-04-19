@@ -109,7 +109,7 @@ const deleteAdjustmentTimeOffService = async (id) => {
     const { data, error } = await deleteAdjustment(id);
 
     if (error) throw new Error(error.message);
-    if (!data || data.length === 0) throw new Error("Data tidak ditemukan");
+    if (!data || data.length === 0) throw new Error("Data not found");
 
     return data;
 };
@@ -121,7 +121,7 @@ const updateAdjustmentTimeOffService = async (id, body) => {
     const { data, error } = await updateAdjustment(parsedId, body);
 
     if (error) throw new Error(error.message);
-    if (!data || data.length === 0) throw new Error("Data tidak ditemukan");
+    if (!data || data.length === 0) throw new Error("Data not found");
 
     return data;
 };

@@ -32,7 +32,7 @@ router.post("/", authMiddleware, async (req, res) => {
 
         return res.status(200).json({
             data,
-            message: "Data berhasil dibuat",
+            message: "Data created successfully",
             error: false
         });
 
@@ -53,7 +53,7 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 
         return res.status(200).json({
             data,
-            message: "Data berhasil dihapus",
+            message: "Data deleted successfully",
             error: false
         });
 
@@ -72,7 +72,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
 
         return res.status(200).json({
             data,
-            message: "Data berhasil diupdate",
+            message: "Data updated successfully",
             error: false
         });
 

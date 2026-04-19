@@ -188,7 +188,7 @@ const deleteEmployeeService = async (id) => {
     }
 
     if (!data || data.length === 0) {
-        const err = new Error("Data tidak ditemukan");
+        const err = new Error("Data not found");
         err.status = 404;
         throw err;
     }

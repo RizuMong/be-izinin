@@ -22,7 +22,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
 
         return info;
     } catch (err) {
-        throw new Error("Gagal mengirim email");
+        throw new Error("Failed to send email");
     }
 };
 
