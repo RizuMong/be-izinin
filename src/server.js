@@ -7,46 +7,51 @@ dotenv.config();
 
 const PORT = process.env.PORT;
 
-// auth
-const authController = require("./auth/auth.controller");
+// Middleware
+const authMiddleware = require("./shared/middleware/auth");
+
+// Modules
+
+// 1. Auth & User
+const authController = require("./modules/auth/controller/auth.controller");
 app.use("/auth", authController);
 
-// master data
-const afdelingController = require("./master-afdeling/afdeling.controller");
+const userController = require("./modules/user/controller/user.controller");
+app.use("/user", userController);
+
+// 2. Master Data
+const afdelingController = require("./modules/master/afdeling/controller/afdeling.controller");
 app.use("/afdeling", afdelingController);
 
-const holidayController = require("./master-holiday/holiday.controller");
+const holidayController = require("./modules/master/holiday/controller/holiday.controller");
 app.use("/holiday", holidayController);
 
-const employeeController = require("./master-employee/employee.controller");
+const employeeController = require("./modules/master/employee/controller/employee.controller");
 app.use("/employee", employeeController);
 
-const jobPositionController = require("./master-job-position/job-position.controller");
+const jobPositionController = require("./modules/master/position/controller/job-position.controller");
 app.use("/job-position", jobPositionController);
 
-const siteController = require("./master-site/site.controller");
+const siteController = require("./modules/master/site/controller/site.controller");
 app.use("/site", siteController);
 
-const timeOffController = require("./master-time-off/time-off.controller");
-app.use("/time-off", timeOffController);
+const timeOffTypeController = require("./modules/master/timeoff-type/controller/time-off.controller");
+app.use("/time-off", timeOffTypeController);
 
-// time off
-const timeOffEmployeeController = require("./time-off-employee/time-off-employee.controller");
+// 3. Time Off Feature
+const timeOffEmployeeController = require("./modules/timeoff/controller/timeoff-employee.controller");
 app.use("/time-off/employee", timeOffEmployeeController);
 
-const adjustmentTimeOffController = require("./adjustment-time-off/adjustment-time-off.controller");
+const adjustmentTimeOffController = require("./modules/timeoff/controller/timeoff-adjustment.controller");
 app.use("/adjustment-time-off/employee", adjustmentTimeOffController);
 
-const requestTimeOffController = require("./request-time-off/request-time-off.controller");
-app.use("/time-off-request", requestTimeOffController);
+const timeoffRequestController = require("./modules/timeoff/controller/timeoff-request.controller");
 
-// request time off approval
-const approvalController = require("./approval-time-off/approval.controller");
+// Both listing and actions for requests
+app.use("/time-off-request", timeoffRequestController); // Handles GET / and Actions
+
+const approvalController = require("./modules/timeoff/controller/timeoff-approval.controller");
 app.use("/time-off-approval", approvalController);
-
-// user
-const userController = require("./user/user.controller");
-app.use("/user", userController);
 
 
 app.listen(PORT, () => {
