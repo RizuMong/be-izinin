@@ -4,10 +4,49 @@ const authMiddleware = require("../../../shared/middleware/auth");
 
 const { createDraftService, updateDraftService, submitService } = require("../service/submit-timeoff.service");
 const { cancelService } = require("../service/cancel-timeoff.service");
-const { getTimeOffRequestDetailService } = require("../service/get-timeoff-request.service");
-const { getAllTimeOffRequestService } = require("../service/get-timeoff-history.service");
 const { approveService } = require("../service/approve-timeoff.service");
 const { rejectService } = require("../service/reject-timeoff.service");
+const { getTimeOffRequestDetailService } = require("../service/get-timeoff-request.service");
+const { getAllTimeOffRequestService } = require("../service/get-timeoff-history.service");
+const { getAllHistoryAdminService, getUserRequestListService } = require("../service/timeoff-summary.service");
+
+// Get Global History (Admin View)
+router.get("/history/all", authMiddleware, async (req, res) => {
+    try {
+        const result = await getAllHistoryAdminService(req.query);
+        return res.status(200).json({
+            data: result.data,
+            meta: result.meta,
+            message: "Success get datas",
+            error: false
+        });
+    } catch (err) {
+        return res.status(500).json({
+            data: null,
+            message: err.message,
+            error: true
+        });
+    }
+});
+
+// Get User Request List
+router.get("/request", authMiddleware, async (req, res) => {
+    try {
+        const result = await getUserRequestListService(req.query, req.user.email);
+        return res.status(200).json({
+            data: result.data,
+            meta: result.meta,
+            message: "Success get datas",
+            error: false
+        });
+    } catch (err) {
+        return res.status(500).json({
+            data: null,
+            message: err.message,
+            error: true
+        });
+    }
+});
 
 // Get History List
 router.get("/", authMiddleware, async (req, res) => {
