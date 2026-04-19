@@ -77,7 +77,7 @@ const createAdjustmentTimeOffService = async (body) => {
     if (!employee_id) throw new Error("Employee is required");
     if (!timeoff_id) throw new Error("Time Off is required");
     if (!period) throw new Error("Period is required");
-    if (!total_quota) throw new Error("Total Quota is required");
+    if (total_quota === undefined || total_quota === null) throw new Error("Total Quota is required");
     if (!operation) throw new Error("Operation is required");
 
     // Sync to master_timeoff_employee (quota)

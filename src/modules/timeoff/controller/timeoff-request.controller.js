@@ -176,7 +176,7 @@ router.put("/submit/:id", authMiddleware, async (req, res) => {
 });
 
 // Cancel
-router.post("/cancel/:id", authMiddleware, async (req, res) => {
+router.put("/cancel/:id", authMiddleware, async (req, res) => {
     try {
         const data = await cancelService(req.params.id, req.user.email);
         return res.status(200).json({
