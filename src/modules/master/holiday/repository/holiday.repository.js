@@ -50,12 +50,13 @@ const createHoliday = async (payload) => {
         .select();
 };
 
-const deleteHoliday = async (id) => {
+const deleteHoliday = async (id, userEmail) => {
     return await db
         .from("master_holiday")
         .delete()
         .eq("id", id)
-        .select(); // biar tahu data kehapus
+        .select()
+        .single();
 };
 
 const updateHoliday = async (id, payload) => {

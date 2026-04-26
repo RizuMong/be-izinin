@@ -34,12 +34,13 @@ const createAfdeling = async (payload) => {
         .select();
 };
 
-const deleteAfdeling = async (id) => {
+const deleteAfdeling = async (id, userEmail) => {
     return await db
         .from("master_afdeling")
         .delete()
         .eq("id", id)
-        .select(); // biar tahu data kehapus
+        .select()
+        .single();
 };
 
 const updateAfdeling = async (id, payload) => {

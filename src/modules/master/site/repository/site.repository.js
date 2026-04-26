@@ -30,16 +30,21 @@ const findAll = async ({ from, to, sortBy, order, search }) => {
 const createSite = async (payload) => {
     return await db
         .from("master_site")
-        .insert(payload)
+        .insert({
+            ...payload,
+            created_by_email: payload.created_by_email,
+            updated_by_email: payload.updated_by_email
+        })
         .select();
 };
 
-const deleteSite = async (id) => {
+const deleteSite = async (id, userEmail) => {
     return await db
         .from("master_site")
         .delete()
         .eq("id", id)
-        .select(); // biar tahu data kehapus
+        .select()
+        .single();
 };
 
 const updateSite = async (id, payload) => {

@@ -28,7 +28,8 @@ router.get("/", authMiddleware, async (req, res) => {
 
 router.post("/", authMiddleware, async (req, res) => {
     try {
-        const data = await createEmployeeService(req.body);
+        const userEmail = req.user?.email;
+        const data = await createEmployeeService(req.body, userEmail);
 
         return res.status(200).json({
             data,
@@ -48,8 +49,9 @@ router.post("/", authMiddleware, async (req, res) => {
 router.delete("/:id", authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
+        const userEmail = req.user?.email;
 
-        const data = await deleteEmployeeService(id);
+        const data = await deleteEmployeeService(id, userEmail);
 
         return res.status(200).json({
             data,
@@ -68,7 +70,8 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 
 router.put("/:id", authMiddleware, async (req, res) => {
     try {
-        const data = await updateEmployeeService(req.params.id, req.body);
+        const userEmail = req.user?.email;
+        const data = await updateEmployeeService(req.params.id, req.body, userEmail);
 
         return res.status(200).json({
             data,

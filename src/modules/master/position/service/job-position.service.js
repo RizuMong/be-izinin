@@ -49,7 +49,7 @@ const getJobPosition = async (params) => {
     };
 };
 
-const createJobPositionService = async (body) => {
+const createJobPositionService = async (body, userEmail) => {
     const { name } = body;
 
     // Validation
@@ -69,7 +69,11 @@ const createJobPositionService = async (body) => {
         label: "Name"
     });
 
-    const { data, error } = await createJobPosition({ name });
+    const { data, error } = await createJobPosition({
+        name,
+        created_by_email: userEmail,
+        updated_by_email: userEmail
+    });
 
     if (error) {
         throw new Error(error.message);
@@ -78,12 +82,12 @@ const createJobPositionService = async (body) => {
     return data;
 };
 
-const deleteJobPositionService = async (id) => {
+const deleteJobPositionService = async (id, userEmail) => {
     if (!id || isNaN(id)) {
         throw new Error("Invalid ID");
     }
 
-    const { data, error } = await deleteJobPosition(id);
+    const { data, error } = await deleteJobPosition(id, userEmail);
 
     if (error) {
         throw new Error(error.message);
@@ -98,7 +102,7 @@ const deleteJobPositionService = async (id) => {
     return data;
 };
 
-const updateJobPositionService = async (id, body) => {
+const updateJobPositionService = async (id, body, userEmail) => {
     const parsedId = parseInt(id);
     const name = body.name;
 
@@ -124,7 +128,10 @@ const updateJobPositionService = async (id, body) => {
         excludeId: parsedId
     });
 
-    const { data, error } = await updateJobPosition(parsedId, { name });
+    const { data, error } = await updateJobPosition(parsedId, {
+        name,
+        updated_by_email: userEmail
+    });
 
     if (error) {
         throw new Error(error.message);

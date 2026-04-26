@@ -49,7 +49,7 @@ const getSite = async (params) => {
     };
 };
 
-const createSiteService = async (body) => {
+const createSiteService = async (body, userEmail) => {
     const { name } = body;
 
     // Validation
@@ -69,7 +69,11 @@ const createSiteService = async (body) => {
         label: "Name"
     });
 
-    const { data, error } = await createSite({ name });
+    const { data, error } = await createSite({
+        name,
+        created_by_email: userEmail,
+        updated_by_email: userEmail
+    });
 
     if (error) {
         throw new Error(error.message);
@@ -78,12 +82,12 @@ const createSiteService = async (body) => {
     return data;
 };
 
-const deleteSiteService = async (id) => {
+const deleteSiteService = async (id, userEmail) => {
     if (!id || isNaN(id)) {
         throw new Error("Invalid ID");
     }
 
-    const { data, error } = await deleteSite(id);
+    const { data, error } = await deleteSite(id, userEmail);
 
     if (error) {
         throw new Error(error.message);
@@ -98,7 +102,7 @@ const deleteSiteService = async (id) => {
     return data;
 };
 
-const updateSiteService = async (id, body) => {
+const updateSiteService = async (id, body, userEmail) => {
     const parsedId = parseInt(id);
     const name = body.name;
 
@@ -129,7 +133,10 @@ const updateSiteService = async (id, body) => {
         excludeId: parsedId
     });
 
-    const { data, error } = await updateSite(parsedId, { name });
+    const { data, error } = await updateSite(parsedId, {
+        name,
+        updated_by_email: userEmail
+    });
 
     if (error) {
         throw new Error(error.message);

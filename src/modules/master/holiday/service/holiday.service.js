@@ -64,7 +64,7 @@ const getAHoliday = async (params) => {
     };
 };
 
-const createHolidayService = async (body) => {
+const createHolidayService = async (body, userEmail) => {
     const { name, is_national_holiday, date } = body;
 
     if (!name) {
@@ -107,7 +107,9 @@ const createHolidayService = async (body) => {
     const { data, error } = await createHoliday({
         name,
         is_national_holiday,
-        date
+        date,
+        created_by_email: userEmail,
+        updated_by_email: userEmail
     });
 
     if (error) {
@@ -117,12 +119,12 @@ const createHolidayService = async (body) => {
     return data;
 };
 
-const deleteHolidayService = async (id) => {
+const deleteHolidayService = async (id, userEmail) => {
     if (!id || isNaN(id)) {
         throw new Error("Invalid ID");
     }
 
-    const { data, error } = await deleteHoliday(id);
+    const { data, error } = await deleteHoliday(id, userEmail);
 
     if (error) {
         throw new Error(error.message);
@@ -137,7 +139,7 @@ const deleteHolidayService = async (id) => {
     return data;
 };
 
-const updateHolidayService = async (id, body) => {
+const updateHolidayService = async (id, body, userEmail) => {
     const { name, is_national_holiday, date } = body;
 
     const parsedId = parseInt(id);
@@ -199,6 +201,8 @@ const updateHolidayService = async (id, body) => {
     if (Object.keys(payload).length === 0) {
         throw new Error("No data provided for update");
     }
+
+    payload.updated_by_email = userEmail;
 
     const { data, error } = await updateHoliday(parsedId, payload);
 

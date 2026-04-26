@@ -58,10 +58,9 @@ const getTimeOff = async (params) => {
     };
 };
 
-const createTimeOffService = async (body) => {
+const createTimeOffService = async (body, userEmail) => {
     const { name, timeoff_type } = body;
 
-    // Validation
     if (!name) {
         throw new Error("Name is required");
     }
@@ -82,7 +81,12 @@ const createTimeOffService = async (body) => {
         throw new Error("Time Off is required");
     }
 
-    const { data, error } = await createTimeOff({ name, timeoff_type });
+    const { data, error } = await createTimeOff({
+        name,
+        timeoff_type,
+        created_by_email: userEmail,
+        updated_by_email: userEmail
+    });
 
     if (error) {
         throw new Error(error.message);
@@ -91,12 +95,12 @@ const createTimeOffService = async (body) => {
     return data;
 };
 
-const deleteTimeOffService = async (id) => {
+const deleteTimeOffService = async (id, userEmail) => {
     if (!id || isNaN(id)) {
         throw new Error("Invalid ID");
     }
 
-    const { data, error } = await deleteTimeOff(id);
+    const { data, error } = await deleteTimeOff(id, userEmail);
 
     if (error) {
         throw new Error(error.message);
@@ -111,7 +115,7 @@ const deleteTimeOffService = async (id) => {
     return data;
 };
 
-const updateTimeOffService = async (id, body) => {
+const updateTimeOffService = async (id, body, userEmail) => {
     const parsedId = parseInt(id);
     const { name, timeoff_type } = body;
 
@@ -149,7 +153,7 @@ const updateTimeOffService = async (id, body) => {
         throw err;
     }
 
-    const { data, error } = await updateTimeOff(parsedId, { name, timeoff_type });
+    const { data, error } = await updateTimeOff(parsedId, { name, timeoff_type, updated_by_email: userEmail });
 
     if (error) {
         throw new Error(error.message);

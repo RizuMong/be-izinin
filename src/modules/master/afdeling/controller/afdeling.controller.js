@@ -27,7 +27,8 @@ router.get("/", authMiddleware, async (req, res) => {
 
 router.post("/", authMiddleware, async (req, res) => {
     try {
-        const data = await createAfdelingService(req.body);
+        const userEmail = req.user?.email;
+        const data = await createAfdelingService(req.body, userEmail);
 
         return res.status(200).json({
             data,
@@ -47,8 +48,9 @@ router.post("/", authMiddleware, async (req, res) => {
 router.delete("/:id", authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
+        const userEmail = req.user?.email;
 
-        const data = await deleteAfdelingService(id);
+        const data = await deleteAfdelingService(id, userEmail);
 
         return res.status(200).json({
             data,
@@ -67,7 +69,8 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 
 router.put("/:id", authMiddleware, async (req, res) => {
     try {
-        const data = await updateAfdelingService(req.params.id, req.body);
+        const userEmail = req.user?.email;
+        const data = await updateAfdelingService(req.params.id, req.body, userEmail);
 
         return res.status(200).json({
             data,

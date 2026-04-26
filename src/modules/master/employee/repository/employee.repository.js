@@ -82,12 +82,13 @@ const createEmployee = async (payload) => {
         .select();
 };
 
-const deleteEmployee = async (id) => {
+const deleteEmployee = async (id, userEmail) => {
     return await db
         .from("master_employee")
         .delete()
         .eq("id", id)
-        .select(); // biar tahu data kehapus
+        .select()
+        .single();
 };
 
 const updateEmployee = async (id, payload) => {

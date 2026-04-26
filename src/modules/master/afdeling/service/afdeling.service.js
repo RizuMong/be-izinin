@@ -49,10 +49,9 @@ const getAfdeling = async (params) => {
     };
 };
 
-const createAfdelingService = async (body) => {
+const createAfdelingService = async (body, userEmail) => {
     const { name } = body;
 
-    // Validation
     if (!name) {
         throw new Error("Name is required");
     }
@@ -69,7 +68,11 @@ const createAfdelingService = async (body) => {
         label: "Name"
     });
 
-    const { data, error } = await createAfdeling({ name });
+    const { data, error } = await createAfdeling({
+        name,
+        created_by_email: userEmail,
+        updated_by_email: userEmail
+    });
 
     if (error) {
         throw new Error(error.message);
@@ -78,12 +81,12 @@ const createAfdelingService = async (body) => {
     return data;
 };
 
-const deleteAfdelingService = async (id) => {
+const deleteAfdelingService = async (id, userEmail) => {
     if (!id || isNaN(id)) {
         throw new Error("Invalid ID");
     }
 
-    const { data, error } = await deleteAfdeling(id);
+    const { data, error } = await deleteAfdeling(id, userEmail);
 
     if (error) {
         throw new Error(error.message);
@@ -98,7 +101,7 @@ const deleteAfdelingService = async (id) => {
     return data;
 };
 
-const updateAfdelingService = async (id, body) => {
+const updateAfdelingService = async (id, body, userEmail) => {
     const parsedId = parseInt(id);
     const name = body.name;
 
@@ -129,7 +132,7 @@ const updateAfdelingService = async (id, body) => {
         excludeId: parsedId
     });
 
-    const { data, error } = await updateAfdeling(parsedId, { name });
+    const { data, error } = await updateAfdeling(parsedId, { name, updated_by_email: userEmail });
 
     if (error) {
         throw new Error(error.message);

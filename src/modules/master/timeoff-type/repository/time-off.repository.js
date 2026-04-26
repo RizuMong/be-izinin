@@ -46,12 +46,13 @@ const createTimeOff = async (payload) => {
         .select();
 };
 
-const deleteTimeOff = async (id) => {
+const deleteTimeOff = async (id, userEmail) => {
     return await db
-        .from("master_timeoff")
+        .from("master_time_off")
         .delete()
         .eq("id", id)
-        .select(); // biar tahu data kehapus
+        .select()
+        .single();
 };
 
 const updateTimeOff = async (id, payload) => {

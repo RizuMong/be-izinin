@@ -98,7 +98,7 @@ const getAEmployee = async (params) => {
     };
 };
 
-const createEmployeeService = async (body) => {
+const createEmployeeService = async (body, userEmail) => {
     const {
         site_id,
         afdeling_id,
@@ -166,7 +166,9 @@ const createEmployeeService = async (body) => {
         job_position_id,
         npk,
         full_name,
-        tmk
+        tmk,
+        created_by_email: userEmail,
+        updated_by_email: userEmail
     });
 
     if (error) {
@@ -176,12 +178,12 @@ const createEmployeeService = async (body) => {
     return data;
 };
 
-const deleteEmployeeService = async (id) => {
+const deleteEmployeeService = async (id, userEmail) => {
     if (!id || isNaN(id)) {
         throw new Error("Invalid ID");
     }
 
-    const { data, error } = await deleteEmployee(id);
+    const { data, error } = await deleteEmployee(id, userEmail);
 
     if (error) {
         throw new Error(error.message);
@@ -196,7 +198,7 @@ const deleteEmployeeService = async (id) => {
     return data;
 };
 
-const updateEmployeeService = async (id, body) => {
+const updateEmployeeService = async (id, body, userEmail) => {
     const parsedId = parseInt(id);
 
     if (!parsedId || isNaN(parsedId)) {
@@ -283,10 +285,11 @@ const updateEmployeeService = async (id, body) => {
         payload.tmk = tmk;
     }
 
-    if (Object.keys(payload).length === 0) {
+if (Object.keys(payload).length === 0) {
         throw new Error("No data provided for update");
     }
 
+    payload.updated_by_email = userEmail;
 
     const { data, error } = await updateEmployee(parsedId, payload);
 

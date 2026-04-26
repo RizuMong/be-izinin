@@ -34,12 +34,13 @@ const createJobPosition = async (payload) => {
         .select();
 };
 
-const deleteJobPosition = async (id) => {
+const deleteJobPosition = async (id, userEmail) => {
     return await db
         .from("master_job_position")
         .delete()
         .eq("id", id)
-        .select(); // biar tahu data kehapus
+        .select()
+        .single();
 };
 
 const updateJobPosition = async (id, payload) => {
